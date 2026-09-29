@@ -1,0 +1,13 @@
+[project]
+name = "mantle-ml"
+version = "0.1.0"
+description = "Mantle ml package (placeholder until its build stage)"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mantle_ml"]
