@@ -5,8 +5,37 @@ Smart India Hackathon 2026 · Problem statement **SIH26120** (Oil India Limited 
 
 ![Mantle · Well · Twin](docs/diagrams/wireframes/well-twin.svg)
 
-> **Status: planning (Rev B, 29 Sep 2026). No application code yet.**
-> The commands in this README describe the target developer experience. They work once Phase 0 lands (see [plan §27](plan.md#27-technical-implementation-plan)). The full specification is in **[plan.md](plan.md)** (printable: **[plan.pdf](plan.pdf)**).
+> **Status: working demo (29 Sep 2026).** A self-contained, frontend-only prototype covering
+> the full product surface — living 3D twin, blueprint view, field, arena, ledger, impact
+> and proof — lives in **[demo/](demo)** and runs in any browser with a static file server.
+> The Docker/Next.js/FastAPI stack described below is the target production architecture
+> (see [plan §27](plan.md#27-technical-implementation-plan)). Full spec: **[plan.md](plan.md)** (printable: **[plan.pdf](plan.pdf)**).
+
+## Run the demo
+
+```bash
+cd demo && python3 -m http.server 8091
+# open http://localhost:8091
+```
+
+No build step, no backend, works offline — Three.js is vendored and all data comes from a
+deterministic mock simulation (`demo/js/sim.js`) seeded to Baghewala-S.
+
+| Route | What |
+|---|---|
+| `#/well` | Living 3D twin — block-diagram well, pump kinematics, lenses, callouts |
+| `#/well/bp` | Engineering blueprint — plates, depth tracks, live dyno card |
+| `#/field` | Field map, triage queue, steam-generator gantt |
+| `#/arena` | Nine strategies race — scoreboard, Coupling Dividend, ablation |
+| `#/ledger` | Decision timeline, ECN detail, hash-chain verification |
+| `#/impact` | Water/energy/CO₂/oil/₹ hero metrics vs baselines |
+| `#/proof` | Provenance donut, assumption registry, model cards, readiness |
+| `#/play` | Judge Challenge kiosk (60-day outrun-the-model mini game) |
+| `#/m` | Mobile well card |
+
+Keys: `1–6` screens · `B` twin⇄blueprint · `C` condition deck · `⌘K` ask Mantle ·
+`Space` play/pause · `←→` step · `L` lens · `X` x-ray · `F` fork · `S` story mode ·
+`.` provenance tint · `?` help. Debug: `#/well?tp=0.72` freezes the transition mid-flight.
 
 ---
 
@@ -47,7 +76,10 @@ Six screens, quiet by default, with detail on hover and in dialogs.
 
 Specifications: [plan §6](plan.md#6-screen-specifications).
 
-## Quick start
+## Quick start (production stack — planned)
+
+The `demo/` folder above is runnable today. The commands in this section describe the
+target developer experience for the full stack once Phase 0 lands.
 
 **Requirements:** Docker Engine 24+ with Compose v2, 16 GB RAM recommended (8 GB minimum), ~10 GB disk. No GPU needed.
 
@@ -115,13 +147,23 @@ Details: [plan §18](plan.md#18-technical-architecture) · API: [§19](plan.md#1
 ## Repository layout
 
 ```
+demo/        frontend-only demo (vanilla HTML/CSS/JS + vendored Three.js)
+  js/sim.js          deterministic Baghewala-S mock backend — wells, physics, arena, ledger
+  js/three-scene.js  procedural 3D twin — four-bar pump rig, strata, heated zone, particles
+  js/blueprint.js    living SVG engineering drawing — plates, depth tracks, dyno card
+  js/app.js          router, overlays, Twin⇄Blueprint transition
+docs/        wireframes · rendered diagrams · pitch deck + generator scripts
+plan.md      the full specification (Rev B)
+plan.pdf     printable spec
+```
+
+Target production layout (from [plan §18](plan.md#18-technical-architecture)):
+
+```
 apps/        web (Next.js) · gateway (FastAPI) · worker · scada · ingest
 packages/    tokens · core · physics · estimator · optimize · ml · rl · synth · arena · copilot · db · api-types
-drafts/      HTML/CSS drafts + gallery (every screen & component, several variants)
 assets/3d/   GLB model + kinematics, anchors, depth map
 bench/       Strategy Arena configs and official results
-evidence/    sources · assumptions · model cards
-docs/        adr · diagrams · demo scripts
 infra/       Dockerfiles · Caddy · Mosquitto · Grafana
 ```
 

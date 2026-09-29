@@ -775,6 +775,7 @@ function toggleMode(){
   tpAnim=requestAnimationFrame(f);
 }
 $('#mode-toggle').addEventListener('click',e=>{if(e.target.dataset.mode)toggleMode()});
+$('#screen-tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(b)nav(b.dataset.nav)});
 
 // ---------- X-RAY / LENS ----------
 function toggleXray(){twin.setXray(!twin.xray);$('#xray-btn').classList.toggle('on',twin.xray)}
