@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mantle — Well-to-Surface Digital Twin (Demo)</title>
+  <link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<script type="importmap">{ "imports": { "three": "./js/vendor/three.module.js" } }</script>
+</head>
+<body data-skin="glass" data-screen="well" data-mode="twin">
+
+<div id="app">
+
+  <!-- ======================= TOP BAR ======================= -->
+  <header id="topbar">
+    <div class="tb-left">
+      <div class="logo" id="logo">
+        <svg viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10" r="2.8" fill="currentColor"/></svg>
+        <span>MANTLE</span>
+      </div>
+      <nav id="screen-tabs">
+        <button class="tab" data-nav="well" data-key="1"><i>1</i>Well</button>
+        <button class="tab" data-nav="field" data-key="2"><i>2</i>Field</button>
+        <button class="tab" data-nav="arena" data-key="3"><i>3</i>Arena</button>
+        <button class="tab" data-nav="ledger" data-key="4"><i>4</i>Ledger</button>
+        <button class="tab" data-nav="impact" data-key="5"><i>5</i>Impact</button>
+        <button class="tab" data-nav="proof" data-key="6"><i>6</i>Proof</button>
+      </nav>
+    </div>
+    <div class="tb-right">
+      <button class="chip well-chip" id="well-context" title="Well context — switch well">
+        <span class="wc-name">BGW-17</span><span class="wc-sep">·</span><span>Cycle 6</span><span class="wc-sep">·</span><span>Day <b id="wc-day">41</b></span><span class="wc-phase" id="wc-phase">PRODUCTION</span>
+      </button>
+      <div class="seg" id="mode-toggle" title="B — Twin ⇄ Blueprint">
+        <button data-mode="twin" class="on">Twin</button><button data-mode="blueprint">Blueprint</button>
+      </div>
+      <button class="chip" id="conditions-chip" title="C — Condition Deck"><span class="dot dot-sky"></span><span id="cond-name">Thar · Dusk</span></button>
+      <button class="chip" id="palette-btn" title="⌘K — Ask Mantle">⌘K</button>
+      <button class="chip bell" id="alerts-btn" title="Alerts"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 1.5a4.5 4.5 0 0 1 4.5 4.5c0 3 .8 4 1.5 5h-12c.7-1 1.5-2 1.5-5A4.5 4.5 0 0 1 8 1.5Z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6.4 13a1.7 1.7 0 0 0 3.2 0" fill="none" stroke="currentColor" stroke-width="1.3"/></svg><span class="badge" id="alert-count">3</span></button>
+      <span class="prov-badge" id="sim-badge" title="All numbers are simulated (Baghewala-S)">SIM</span>
+      <button class="avatar" id="persona-btn" title="Persona">OP</button>
+    </div>
+  </header>
+
+  <!-- ======================= MAIN ======================= -->
+  <main id="screens">
+
+    <!-- ============ SCREEN 1 · WELL ============ -->
+    <section class="screen" id="screen-well">
+      <div id="stage">
+        <canvas id="gl"></canvas>
+        <svg id="leader-svg"></svg>
+        <div id="callouts"></div>
+        <div id="depth-gauge"><div class="dg-label">TVD</div><div class="dg-track"><div class="dg-fill" id="dg-fill"></div><div class="dg-marker" id="dg-marker"></div></div><div class="dg-read" id="dg-read">0 m</div></div>
+        <!-- paper wipe mask layer -->
+        <div id="paper-wipe"></div>
+        <!-- blueprint sheet -->
+        <div id="blueprint-view"></div>
+        <!-- intro overlay -->
+        <div id="intro"><div class="intro-card"><div class="intro-logo">MANTLE</div><div class="intro-sub" id="intro-sub">DRAWING THE WELL…</div><svg id="intro-svg" viewBox="0 0 300 190"></svg></div></div>
+      </div>
+
+      <!-- lens switcher -->
+      <div id="lens-bar" class="glass">
+        <button class="lens on" data-lens="physical">Physical</button>
+        <button class="lens" data-lens="thermal">Thermal</button>
+        <button class="lens" data-lens="mech">Mech</button>
+        <button class="lens" data-lens="flow">Flow</button>
+        <button class="lens" data-lens="pressure">Pressure</button>
+        <button class="lens" data-lens="risk">Risk</button>
+        <span class="lens-sep"></span>
+        <button class="lens" id="xray-btn" title="X — X-ray">X-ray</button>
+      </div>
+
+      <!-- right glass stack -->
+      <aside id="glass-stack">
+        <div class="g-card rec-card" id="rec-card">
+          <div class="g-label">RECOMMENDATION <span class="prov">EST</span></div>
+          <div class="rec-title" id="rec-title">Slow the downstroke</div>
+          <div class="rec-set" id="rec-set">SPM 5.4 → 4.9 · kd 0.55 → 0.62</div>
+          <div class="rec-deltas" id="rec-deltas"></div>
+          <div class="rec-conf"><span id="rec-conf">confidence 0.84</span><span class="rec-bind" id="rec-bind">binding: rod float @ 900 m</span></div>
+          <div class="rec-btns"><button class="btn primary" id="rec-approve">Approve</button><button class="btn" id="rec-modify">Modify</button><button class="btn" id="rec-why">Why?</button></div>
+        </div>
+
+        <div class="g-card" id="risk-card">
+          <div class="g-label">RISK MARGINS <span class="prov">EST</span></div>
+          <div id="risk-bars"></div>
+        </div>
+
+        <div class="g-card" id="forecast-card">
+          <div class="g-label">OIL FORECAST · 30 D <span class="prov">EST</span></div>
+          <svg id="forecast-svg" viewBox="0 0 300 96"></svg>
+        </div>
+
+        <div class="g-row">
+          <div class="g-card mini" id="econ-strip">
+            <div class="g-label">₹/DAY · SOR · kWh · CO₂</div>
+            <div class="econ-nums" id="econ-nums"></div>
+          </div>
+          <div class="g-card mini" id="battery-card" title="Thermal Battery — remaining useful reservoir heat">
+            <div class="g-label">THERMAL BATTERY</div>
+            <div class="battery"><div class="b-fill" id="b-fill"></div><span class="b-pct" id="b-pct">61%</span></div>
+            <div class="b-days" id="b-days">cut-off in ~54 d</div>
+          </div>
+        </div>
+
+        <div class="g-card mini" id="cd-card" title="Coupling Dividend — value of joint vs sequential optimisation">
+          <div class="g-label">COUPLING DIVIDEND <span class="prov">SIM</span></div>
+          <div class="cd-val" id="cd-val">+₹4.1 L<span class="cd-unit">/cycle</span></div>
+          <div class="cd-sub" id="cd-sub">+6.8% oil · SOR −0.4 vs sequential</div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ============ SCREEN 2 · FIELD ============ -->
+    <section class="screen paper" id="screen-field">
+      <div class="paper-grid">
+        <div class="plate map-plate">
+          <div class="plate-head"><span>FIELD MAP · BAGHEWALA-S</span><span class="plate-no">ILLUSTRATIVE LAYOUT</span></div>
+          <svg id="field-map" viewBox="0 0 820 470"></svg>
+          <div class="kpi-footer" id="field-kpis"></div>
+        </div>
+        <div class="plate side-plate">
+          <div class="plate-head"><span>FIELD TRIAGE</span><button class="btn sm" id="fleet-btn">Fleet · T</button></div>
+          <div id="triage-list"></div>
+          <div class="plate-head" style="margin-top:10px"><span>STEAM SCHEDULE · 30 D</span><button class="btn sm" id="sched-btn">Scheduler</button></div>
+          <svg id="steam-gantt" viewBox="0 0 380 150"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 3 · ARENA ============ -->
+    <section class="screen paper" id="screen-arena">
+      <div class="arena-grid">
+        <div class="plate arena-hero">
+          <div class="plate-head"><span>PRODUCTION OUTPUT · 3 CYCLES · 30 WELLS × 20 SEEDS</span><span class="plate-no">PLATE A</span></div>
+          <svg id="arena-chart" viewBox="0 0 900 340"></svg>
+          <div class="run-bar">
+            <span class="run-spec">30 wells · 20 seeds · 360 d · preset: golden-hour</span>
+            <button class="btn sm" id="run-arena">Run live mini-arena (3×3×1)</button>
+            <span class="run-status" id="run-status"></span>
+          </div>
+        </div>
+        <div class="plate">
+          <div class="plate-head"><span>SCOREBOARD · Δ vs STATIC (95% CI)</span><span class="plate-no">PLATE B</span></div>
+          <table class="score-table" id="score-table"></table>
+        </div>
+        <div class="plate">
+          <div class="plate-head"><span>COUPLING DIVIDEND DECOMPOSITION</span><span class="plate-no">PLATE C</span></div>
+          <svg id="cd-waterfall" viewBox="0 0 400 180"></svg>
+        </div>
+        <div class="plate">
+          <div class="plate-head"><span>CUMULATIVE OIL RACE</span><button class="btn sm" id="race-play">▶ play</button></div>
+          <svg id="race-svg" viewBox="0 0 400 180"></svg>
+        </div>
+        <div class="plate">
+          <div class="plate-head"><span>VALUE vs RISK · WELL×SEED</span><span class="plate-no">PLATE D</span></div>
+          <svg id="vr-svg" viewBox="0 0 400 180"></svg>
+        </div>
+        <div class="plate">
+          <div class="plate-head"><span>ABLATION · WHAT EACH PART BUYS</span><span class="plate-no">PLATE E</span></div>
+          <svg id="ablation-svg" viewBox="0 0 400 180"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 4 · LEDGER ============ -->
+    <section class="screen paper" id="screen-ledger">
+      <div class="ledger-grid">
+        <div class="plate ledger-list-plate">
+          <div class="plate-head"><span>DECISION LEDGER · BGW-17</span><span class="plate-no stamp-ok" id="chain-stamp">CHAIN VERIFIED ✓</span></div>
+          <div id="decision-list"></div>
+        </div>
+        <div class="plate ecn-plate" id="ecn-plate">
+          <div class="plate-head"><span>ENGINEERING CHANGE NOTICE</span><span class="plate-no" id="ecn-id">ECN-0</span></div>
+          <div id="ecn-body"></div>
+        </div>
+        <div class="plate">
+          <div class="plate-head"><span>PREDICTED vs REALISED · CALIBRATION</span><span class="plate-no">PLATE 2</span></div>
+          <svg id="calib-svg" viewBox="0 0 400 220"></svg>
+          <div class="plate-note" id="calib-note"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 5 · IMPACT ============ -->
+    <section class="screen paper" id="screen-impact">
+      <div class="impact-toggle">
+        <div class="seg paper-seg" id="scope-seg"><button class="on">Field (30 wells)</button><button>Per well</button><button>Illustrative ×33</button></div>
+        <div class="seg paper-seg" id="base-seg"><button class="on">vs Static</button><button>vs Pump-off</button><button>vs Sequential</button></div>
+      </div>
+      <div class="impact-cols">
+        <div class="plate impact-col"><div class="plate-head"><span>ECONOMIC</span><span class="prov">SIM</span></div><div class="hero-nums" id="imp-econ"></div></div>
+        <div class="plate impact-col"><div class="plate-head"><span>ENVIRONMENTAL</span><span class="prov">SIM</span></div><div class="hero-nums" id="imp-env"></div></div>
+        <div class="plate impact-col"><div class="plate-head"><span>SOCIAL</span><span class="prov">SIM</span></div><div class="hero-nums" id="imp-soc"></div></div>
+      </div>
+      <div class="plate impact-chart-plate">
+        <div class="plate-head"><span>CUMULATIVE Δ NET VALUE vs BASELINES · 180 D</span><button class="btn sm" id="receipt-btn">Cycle receipt</button></div>
+        <svg id="impact-chart" viewBox="0 0 1200 220"></svg>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 6 · PROOF ============ -->
+    <section class="screen paper" id="screen-proof">
+      <div class="proof-grid" id="proof-grid"></div>
+      <div class="proof-footer">
+        <button class="btn sm" id="import-btn">Import CSV live</button>
+        <button class="btn sm" id="verify-btn">Verify ledger</button>
+        <button class="btn sm" id="golden-btn">Run golden scenarios</button>
+      </div>
+    </section>
+
+    <!-- ============ /play — JUDGE CHALLENGE ============ -->
+    <section class="screen paper" id="screen-play">
+      <div class="play-wrap">
+        <div class="plate play-plate">
+          <div class="plate-head"><span>JUDGE CHALLENGE · OPERATE BGW-17 FOR 60 SIM-DAYS</span><span class="plate-no">/play</span></div>
+          <div class="play-body">
+            <svg id="play-chart" viewBox="0 0 640 260"></svg>
+            <div class="play-controls">
+              <label>SPM <b id="play-spm-v">5.4</b><input type="range" id="play-spm" min="2" max="9" step="0.1" value="5.4"></label>
+              <label>Re-steam at day <b id="play-rd-v">—</b><input type="range" id="play-rd" min="20" max="60" step="1" value="60"></label>
+              <button class="btn primary" id="play-start">Start 60-day run</button>
+              <div class="play-score" id="play-score"></div>
+            </div>
+          </div>
+        </div>
+        <div class="plate">
+          <div class="plate-head"><span>LEADERBOARD</span></div>
+          <table class="score-table" id="lb-table"></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ /m/[id] — MOBILE WELL CARD ============ -->
+    <section class="screen" id="screen-mobile">
+      <div class="mobile-card glass">
+        <div class="g-label">BGW-17 · CYCLE 6</div>
+        <div class="m-ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="8"/><circle id="m-ring-arc" cx="60" cy="60" r="52" fill="none" stroke="#E8A33D" stroke-width="8" stroke-linecap="round" transform="rotate(-90 60 60)"/></svg><div class="m-ring-txt"><b id="m-margin">18%</b><span>float margin</span></div></div>
+        <div class="m-nums" id="m-nums"></div>
+        <button class="btn primary" id="m-ack">Acknowledge</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======================= TIMELINE DOCK ======================= -->
+  <footer id="timeline-dock" class="glass">
+    <div class="tl-controls">
+      <button class="tl-btn" id="tl-play" title="Space">▶</button>
+      <select id="tl-speed" title="Playback speed">
+        <option value="0.25">0.25×</option><option value="1" selected>1×</option><option value="10">10×</option><option value="60">60×</option><option value="240">240×</option><option value="500">500×</option>
+      </select>
+      <button class="tl-btn" id="tl-fork" title="F — Fork scenario here">⑂ Fork</button>
+    </div>
+    <div class="tl-strip" id="tl-strip">
+      <svg id="tl-svg"></svg>
+      <input type="range" id="tl-scrub" min="-21" max="180" step="0.1" value="41">
+    </div>
+    <div class="tl-read"><span id="tl-t">Day 41</span><span class="tl-phase" id="tl-phase">PRODUCTION</span></div>
+  </footer>
+
+  <!-- ======================= OVERLAYS ======================= -->
+  <div id="peek" class="peek glass"></div>
+
+  <aside id="inspect-sheet" class="glass">
+    <div class="sheet-head"><span id="sheet-title">Part</span><button class="sheet-x" id="sheet-close">✕</button></div>
+    <div class="sheet-tabs" id="sheet-tabs"></div>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-foot"><button class="btn sm" data-act="arena">Compare in Arena</button><button class="btn sm" data-act="fork">Fork here</button><button class="btn sm" data-act="ask">Ask about this</button></div>
+  </aside>
+
+  <div id="condition-deck">
+    <div class="cd-sheet glass" id="cd-sheet">
+      <div class="sheet-head"><span>CONDITION DECK · changes physics + picture</span><button class="sheet-x" data-close="cd">✕</button></div>
+      <div class="cd-cols" id="cd-cols"></div>
+      <div class="cd-presets" id="cd-presets"></div>
+    </div>
+  </div>
+
+  <div id="palette">
+    <div class="pal-box glass">
+      <input id="pal-input" placeholder="Ask Mantle, or type a command…" autocomplete="off">
+      <div id="pal-list"></div>
+    </div>
+  </div>
+
+  <aside id="alerts-drawer" class="glass">
+    <div class="sheet-head"><span>ALERTS · ISA-18.2</span><button class="sheet-x" data-close="alerts">✕</button></div>
+    <div id="alerts-list"></div>
+  </aside>
+
+  <div id="modal-wrap"><div id="modal" class="paper-modal"></div></div>
+
+  <div id="story-mode">
+    <div class="story-bar glass"><span id="story-beat"></span><span class="story-hint">S exit · → next beat</span></div>
+  </div>
+
+  <div id="toasts"></div>
+  <div id="scenario-ribbon">SCENARIO · <b id="scen-name">baseline</b><button id="scen-exit">return to reality</button></div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
