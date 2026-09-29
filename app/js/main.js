@@ -13,6 +13,7 @@ import { buildWell } from './well.js';
 import { WELL, UNIT, STROKE, rodPosition } from './rig.js';
 import { Hud } from './hud.js';
 import { SectionView } from './section.js';
+import { Inspect } from './inspect.js';
 import { CYCLE } from './sim.js';
 
 const $ = (id) => document.getElementById(id);
@@ -96,9 +97,40 @@ sky.setTime(tod);
 
 /* ------------------------------------------------------------------ HUD + section view */
 const hud = new Hud({ getSim: () => sim });
-onMetrics = (m) => hud.update(m);
+onMetrics = (m) => { hud.update(m); inspect.setMetrics(m); };
 hud.onPickDay = (d) => setDay(d);
 const section = new SectionView({ root: $('section'), getSim: () => sim, onPlayChange: () => {} });
+
+/* ------------------------------------------------------------------ inspect mode (exploded machine) */
+let inspectSaved = null;
+function flyTo(pos, target, dur) {
+  if (!pos) { if (!inspectSaved) return Promise.resolve(); pos = inspectSaved.pos; target = inspectSaved.target; inspectSaved = null; }
+  sph.setFromVector3(pos.clone().sub(target));
+  return tweenCamera({ toTarget: target.clone(), toTheta: sph.theta, toPhi: sph.phi, toFov: 36, toDist: sph.radius, dur });
+}
+const inspect = new Inspect({
+  camera, pumpjack, well, getSim: () => sim, flyTo,
+  onChange: (on) => {
+    if (on && !inspectSaved) inspectSaved = { pos: camera.position.clone(), target: controls.target.clone() };
+    $('btn-inspect').classList.toggle('on', on);
+    $('tooltip').classList.remove('show');
+  },
+});
+$('btn-inspect').onclick = () => (inspect.active ? inspect.exit() : inspect.enter('surface'));
+// click the machine to inspect it: the pumping unit, or the completion below ground
+{
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  let down = null;
+  renderer.domElement.addEventListener('pointerdown', (e) => (down = { x: e.clientX, y: e.clientY }));
+  renderer.domElement.addEventListener('pointerup', (e) => {
+    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5 || screen !== 'well' || busy) return;
+    ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const hit = ray.intersectObjects([pumpjack.root, well.root], true)[0];
+    if (!hit) return;
+    inspect.enter(hit.point.y < -1 ? 'downhole' : 'surface');
+  });
+}
 
 function setDay(d) { if (!sim) return; sim.set({ cycleDay: Math.min(CYCLE.days, Math.max(0, d)) }); metricsTimer = 0; syncDaySlider(); }
 function syncDaySlider() { const d = sim.metrics().cycleDay; $('r-day').value = d; $('v-day').textContent = d.toFixed(0); }
@@ -161,6 +193,8 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (busy) return;
+  if (k === 'i') inspect.active ? inspect.exit() : inspect.enter('surface');
+  if (k === 'escape' && inspect.active) inspect.exit();
   if (k === 'n') animateTo(sky.state.night > 0.5 ? ENV.dayTime : ENV.nightTime);
   if (k === 't') setLens(!thermalLens);
   if (k === 'm') setDrawer(drawerState === 'open' ? 'peek' : 'open');
@@ -217,6 +251,7 @@ async function switchScreen(to) {
   document.querySelectorAll('#screen-switch button').forEach((b) => b.classList.toggle('active', b.dataset.screen === to));
   placeGlider();
   $('tooltip').classList.remove('show', 'light');
+  if (inspect.active) await inspect.exit();
   if (to === 'section') {
     savedView = { pos: camera.position.clone(), target: controls.target.clone() };
     controls.enabled = false;
@@ -273,7 +308,7 @@ function loop() {
 
   if (camTween) stepCamTween(dt);
   // lift the scene above the metrics drawer (a view offset keeps the orbit pivot untouched)
-  const shiftTarget = screen === 'well' && !busy && !$('ui').classList.contains('hidden') ? (drawerState === 'open' ? drawer.offsetHeight * 0.4 : 70) : 0;
+  const shiftTarget = screen === 'well' && !busy && !inspect.active && !inspectSaved && !$('ui').classList.contains('hidden') ? (drawerState === 'open' ? drawer.offsetHeight * 0.4 : 70) : 0;
   viewShift += (shiftTarget - viewShift) * Math.min(1, dt * 5);
   if (Math.abs(viewShift) > 0.5) camera.setViewOffset(window.innerWidth, window.innerHeight, 0, viewShift, window.innerWidth, window.innerHeight);
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
@@ -285,6 +320,7 @@ function loop() {
     scene.fog.density = 0.0011 * Math.min(1, 110 / camera.position.distanceTo(controls.target));
     renderer.toneMappingExposure = env.exposure;
     bloom.strength = env.bloomStrength; bloom.threshold = env.bloomThreshold;
+    inspect.frame(dt);
     pumpjack.update(theta);
     const rp = st ? st.rodPos : rodPosition(theta);
     const mu = live?.viscosity ?? 400;
@@ -308,9 +344,10 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-window.mantle = { THREE, scene, camera, controls, renderer, sky, pumpjack, well, terrain, section, hud, setTimeOfDay, animateTo, switchScreen, setDay, get sim() { return sim; } };
+window.mantle = { THREE, scene, camera, controls, renderer, sky, pumpjack, well, terrain, section, hud, inspect, setTimeOfDay, animateTo, switchScreen, setDay, get sim() { return sim; } };
 if (sim) { syncDaySlider(); hud.update(sim.metrics()); }
 syncTod();
 $('loader')?.classList.add('done');
 loop();
 if (params.get('screen') === 'section') setTimeout(() => switchScreen('section'), 600);
+if (params.get('inspect')) setTimeout(() => inspect.enter(params.get('inspect')), 600);
