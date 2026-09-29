@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mantle · Well View</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23191511'/%3E%3Crect x='10' y='30' width='44' height='6' fill='%23b0664a'/%3E%3Crect x='10' y='38' width='44' height='6' fill='%239ea3a2'/%3E%3Crect x='10' y='46' width='44' height='8' fill='%236b4a2e'/%3E%3Cpath d='M31 12v42' stroke='%23f0b35a' stroke-width='4'/%3E%3Ccircle cx='31' cy='50' r='6' fill='%23f07a2a'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" />
+<link rel="stylesheet" href="style.css" />
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/build/three.module.js",
+  "three/addons/": "./vendor/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="viewport"></div>
+
+<div id="loader">
+  <div class="loader-inner">
+    <div class="loader-mark">MANTLE</div>
+    <div class="loader-bar"><span></span></div>
+    <div class="loader-text" id="loader-text">Surveying the section…</div>
+  </div>
+</div>
+
+<div id="ui">
+  <!-- identity + live telemetry -->
+  <header class="hud hud-tl">
+    <div class="brand"><span class="dot" id="live-dot"></span>MANTLE <em>Well View</em></div>
+    <h1>BGW-17</h1>
+    <div class="sub">Baghewala · Jodhpur Sandstone · CSS cycle 4 · <span id="phase-sub">Production</span></div>
+    <div class="telemetry">
+      <div data-tip="spm"><label>SPM</label><span id="t-spm">0.0</span><small>strokes/min</small></div>
+      <div data-tip="load"><label>Rod load</label><span id="t-load">0</span><small>kN</small></div>
+      <div data-tip="sandface"><label>Sandface</label><span id="t-temp">0</span><small>°C</small></div>
+      <div data-tip="visc"><label>Viscosity</label><span id="t-visc">0</span><small>cP</small></div>
+      <div data-tip="level"><label>Fluid lvl</label><span id="t-level">0</span><small>m</small></div>
+    </div>
+  </header>
+
+  <!-- value + cycle + advisor, top right -->
+  <aside class="hud panel value-panel" id="value-panel" data-tip="net">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 4h12M6 9h12M6 4c5 0 8 1.6 8 5s-3 5-8 5l8 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span id="v-net">—</span><small>/ day</small>
+    <span class="delta" id="v-delta">—</span>
+  </aside>
+
+  <div class="hud rail" id="rail">
+    <aside class="panel cycle-panel" id="cycle-panel">
+      <div class="panel-head"><span class="ph-title">Steam cycle</span><span class="ph-sum" id="cycle-sum">Day 41 / 120</span></div>
+      <div class="panel-body">
+        <div class="cycle-ring-wrap">
+          <canvas id="c-ring" width="220" height="220"></canvas>
+          <div class="ring-center">
+            <span class="ring-phase" id="ring-phase">Production</span>
+            <b id="ring-day">41</b>
+            <small id="ring-sub">day 23 of 102</small>
+          </div>
+        </div>
+        <div class="stats">
+          <div data-tip="battery"><span id="s-battery">0%</span><label>Heat left</label></div>
+          <div data-tip="rh"><span id="s-rh">0 m</span><label>Heated r</label></div>
+          <div data-tip="cutoff"><span id="s-cutoff">0 d</span><label>To cut-off</label></div>
+        </div>
+      </div>
+    </aside>
+
+    <aside class="panel advisor-panel" id="advisor-panel">
+      <div class="panel-head"><span class="ph-title"><i class="spark"></i>Advisor</span><span class="ph-sum" id="adv-conf">—</span></div>
+      <div class="panel-body">
+        <div class="adv-title" id="adv-title">—</div>
+        <div class="adv-detail" id="adv-detail"></div>
+        <div class="adv-deltas" id="adv-deltas"></div>
+        <button class="adv-apply" id="adv-apply" type="button">Apply to well</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- bottom control deck -->
+  <footer class="hud panel controls" id="controls">
+    <div class="daynight" role="group" aria-label="Time of day">
+      <button id="btn-day" class="active" type="button" title="Day (N)">
+        <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>
+        Day
+      </button>
+      <button id="btn-night" type="button" title="Night (N)">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="currentColor"/></svg>
+        Night
+      </button>
+    </div>
+    <div class="slider">
+      <label>Time <span id="v-time">16:45</span></label>
+      <input type="range" id="r-time" min="0" max="24" step="0.01" value="16.75" />
+    </div>
+    <div class="slider wide">
+      <label>Cycle day <span id="v-day">41</span></label>
+      <div class="cyc-track"><i class="seg inj"></i><i class="seg soak"></i><i class="seg prod"></i></div>
+      <input type="range" id="r-day" min="0" max="120" step="0.1" value="41" />
+    </div>
+    <div class="slider">
+      <label>Pump speed <span id="v-spm">5.4 SPM</span></label>
+      <input type="range" id="r-spm" min="2" max="12" step="0.1" value="5.4" />
+    </div>
+    <div class="lens" role="group" aria-label="Lens">
+      <button id="btn-natural" class="active" type="button" title="Natural (T)">Natural</button>
+      <button id="btn-thermal" type="button" title="Thermal lens (T)">Thermal</button>
+    </div>
+    <button class="icon-btn" id="btn-play" type="button" title="Run the cycle (Space)">
+      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M7 5l12 7-12 7z" fill="currentColor"/></svg>
+    </button>
+    <button class="icon-btn" id="btn-cam" type="button" title="Reset camera (C)">
+      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+    </button>
+  </footer>
+
+  <div class="hint-bar">Drag to orbit · Right-drag to pan · Scroll to zoom · <kbd>N</kbd> day/night · <kbd>T</kbd> thermal · <kbd>M</kbd> metrics · <kbd>2</kbd> section</div>
+
+  <!-- metrics drawer -->
+  <section class="hud metrics open" id="metrics">
+    <button class="drawer-tab" id="metrics-tab" type="button">Metrics<svg viewBox="0 0 12 12" width="10" height="10"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+    <div class="kpis" id="kpis"></div>
+    <div class="cards">
+      <div class="card span-4">
+        <div class="card-head"><span>Cycle production</span>
+          <div class="pills"><span class="pill"><i class="ln"></i>Oil</span><span class="pill"><i class="band"></i>P10–P90</span><span class="pill"><i class="ln amber dash"></i>Sandface T</span></div>
+        </div>
+        <canvas id="c-cycle"></canvas>
+      </div>
+      <div class="card span-3">
+        <div class="card-head"><span>Dynamometer card</span><em id="dyno-cls">—</em></div>
+        <canvas id="c-dyno"></canvas>
+        <div class="card-foot"><span><i class="ln"></i>Surface</span><span><i class="ln blue"></i>Downhole</span></div>
+      </div>
+      <div class="card span-2">
+        <div class="card-head"><span>Heat in the well</span><em>T vs depth</em></div>
+        <canvas id="c-profile"></canvas>
+      </div>
+      <div class="card span-3">
+        <div class="card-head"><span>Operating limits</span></div>
+        <div class="limits" id="limits"></div>
+        <ul class="alerts" id="alerts"></ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav class="screen-switch" id="screen-switch" role="tablist">
+  <button class="active" data-screen="well" type="button" title="Well (1)">
+    <svg viewBox="0 0 24 24" width="15" height="15"><path d="M3 20h18M7 20l3-9h4l3 9M9 7h9l-2 4M12 7V3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Well</button>
+  <button data-screen="section" type="button" title="Section (2)">
+    <svg viewBox="0 0 24 24" width="15" height="15"><rect x="3" y="4" width="18" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 9h18M3 14h18M12 4v16" stroke="currentColor" stroke-width="1.4"/></svg>
+    Section</button>
+  <i class="glider"></i>
+</nav>
+
+<div id="section" class="section"></div>
+<div id="tooltip" class="tooltip"></div>
+
+<script type="module" src="js/main.js" onerror="document.getElementById('loader-text').textContent = 'Could not load the scene. Check the console and refresh.'"></script>
+</body>
+</html>
