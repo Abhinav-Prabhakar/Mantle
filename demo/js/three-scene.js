@@ -5,6 +5,7 @@
 // ============================================================
 import * as THREE from 'three';
 import { state as wellState, sandfaceT, heatedRadius, viscosity, clamp, lerp } from './sim.js';
+const easeIO=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
 // ---------- depth mapping (piecewise, per §8.1) ----------
 const DP=[[0,0],[30,-3],[1050,-26],[1200,-40]];
@@ -114,7 +115,6 @@ export function createTwin(canvas){
     tick.position.set(-.6,y,.03); strata.add(tick);
   }
   // strata name labels on the two inner cut faces — ink tags that survive the drain
-  const labelMat0=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false});
   function faceLabel(text,x,y,z,face){ // face: 'z' = inner z=0 wall, 'x' = inner x=0 wall
     const c=document.createElement('canvas');c.width=512;c.height=56;const g=c.getContext('2d');
     g.font='600 30px "IBM Plex Sans Condensed",system-ui,sans-serif';g.fillStyle='#2a2620';g.textBaseline='middle';
@@ -295,6 +295,10 @@ export function createTwin(canvas){
   for(let i=0;i<10;i++){const pf=new THREE.Mesh(new THREE.ConeGeometry(.06,.3,6),MATS.oil);
     const yy=depthToY(1105+i*4.5); pf.position.set(.3,yy,(i%2?.12:-.05));pf.rotation.z=-Math.PI/2;perfGroup.add(pf)}
   wb.add(perfGroup);
+  // glowing perf ports — read through the quarter-section cut
+  const perfDots=[];
+  for(let i=0;i<7;i++){const d=new THREE.Mesh(new THREE.SphereGeometry(.06,6,6),new THREE.MeshBasicMaterial({color:'#ff6a35'}));
+    d.position.set(.12,depthToY(1106+i*6),.12);wb.add(d);perfDots.push(d)}
   // annulus fluid level surface
   const fluidLevelM=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.03,12),new THREE.MeshStandardMaterial({color:'#2c5f9e',emissive:'#2c5f9e',emissiveIntensity:.4,transparent:true,opacity:.9}));
   wb.add(fluidLevelM);
@@ -320,6 +324,16 @@ export function createTwin(canvas){
   // cap-rock heat loss glow
   const capGlow=new THREE.Mesh(new THREE.PlaneGeometry(8,.5),new THREE.MeshBasicMaterial({color:'#b3362c',transparent:true,opacity:.3,blending:THREE.AdditiveBlending,depthWrite:false}));
   capGlow.position.set(0,depthToY(1100)+.3,.02);world.add(capGlow);
+  // isotherm contour rings on the two cut faces — drafting-style heat contours
+  const isoRings=[];
+  for(let i=0;i<4;i++){
+    const curve=new THREE.EllipseCurve(0,0,1.8+i*1.7,(1.8+i*1.7)*.58);
+    const g=new THREE.BufferGeometry().setFromPoints(curve.getPoints(64));
+    const mat=new THREE.LineBasicMaterial({color:'#e8763a',transparent:true,opacity:.75});
+    const r1=new THREE.LineLoop(g,mat);r1.position.set(0,depthToY(1127),.05);world.add(r1);
+    const r2=new THREE.LineLoop(g,mat.clone());r2.rotation.y=Math.PI/2;r2.position.set(.05,depthToY(1127),0);world.add(r2);
+    isoRings.push(r1,r2);
+  }
 
   // ---------- particles ----------
   function makePoints(n,size,color,op){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(n*3),3));const m=new THREE.PointsMaterial({color,size,transparent:true,opacity:op,depthWrite:false,blending:THREE.AdditiveBlending});const p=new THREE.Points(g,m);p.frustumCulled=false;world.add(p);return p}
@@ -487,6 +501,8 @@ export function createTwin(canvas){
     heatCore.material.color.copy(thermal(tT)); heatCore.scale.set(hr*.16,hr*.10,hr*.16);
     sliceF.material.color.copy(thermal(tT)); sliceS.material.color.copy(thermal(tT));
     const rs=hr*.34; sliceF.scale.set(rs,rs*.7,1); sliceS.scale.set(rs,rs*.7,1);
+    isoRings.forEach((r,i)=>{const rr=hr*(.16+i*.09)/6;const sc=Math.max(.05,rr);r.scale.set(sc,sc,1);r.material.color.copy(thermal(tT*(1-i*.06)));r.material.opacity=.2+tT*.55});
+    perfDots.forEach((d,i)=>d.scale.setScalar(.8+.5*Math.sin(now*3.5+i*1.3)));
     capGlow.material.opacity=.15+tT*.3;
     if(lens==='thermal'){heatShells.forEach(s=>s.material.opacity*1.4)}
     // mechanical lens: stress wave on rods
@@ -557,25 +573,32 @@ export function createTwin(canvas){
     },
     project(v3){const v=v3.clone().project(camera);const r=canvas.getBoundingClientRect();return{x:(v.x*.5+.5)*r.width,y:(-v.y*.5+.5)*r.height,behind:v.z>1}},
     anchorScreen(name){const o=anchors[name];if(!o)return null;const p=new THREE.Vector3();o.getWorldPosition(p);return api.project(p)},
-    // material drain for transition: 0..1
+    // material drain for transition: 0..1 — colours wash out to paper, ink edges appear
     drain:t=>{
       for(let s=0;s<7;s++){const m=MATS['strat'+s];if(!m.userData.base)m.userData.base=new THREE.Color(strataColors[s]);m.color.copy(m.userData.base).lerp(new THREE.Color('#f5f2ea'),t)}
-      const objs=[MATS.paintY,MATS.paintG,MATS.steel,MATS.alu,MATS.sand,MATS.gravel,MATS.concrete,MATS.tubular,MATS.vit,MATS.rod,MATS.chrome,MATS.blanket,MATS.hazard];
+      const objs=[MATS.paintY,MATS.paintG,MATS.steel,MATS.alu,MATS.sand,MATS.gravel,MATS.concrete,MATS.tubular,MATS.vit,MATS.rod,MATS.chrome,MATS.blanket,MATS.hazard,MATS.rope,MATS.belt,MATS.guide,MATS.oil,MATS.water,MATS.valveRed,MATS.brass,MATS.pad];
       objs.forEach(m=>{if(!m.userData.base)m.userData.base=m.color.clone();m.color.copy(m.userData.base).lerp(new THREE.Color('#faf8f2'),t)});
+      edgeMat.opacity=lerp(.5,1,t);edgeMat.color.set(t>.4?'#26221a':'#3a3428');
       skyMat.uniforms.top.value.lerpColors(new THREE.Color(SKYBASE.top),new THREE.Color('#f3eee2'),t);
       skyMat.uniforms.mid.value.lerpColors(new THREE.Color(SKYBASE.mid),new THREE.Color('#f3eee2'),t);
       skyMat.uniforms.bot.value.lerpColors(new THREE.Color(SKYBASE.bot),new THREE.Color('#f3eee2'),t);
+      skyMat.uniforms.glow.value.lerpColors(new THREE.Color(SKYBASE.bot),new THREE.Color('#f3eee2'),t);
+      stars.material.opacity=(SKYBASE.stars||0)*(1-clamp(t*2,0,1));
       hemi.intensity=lerp(.85,1.6,t); sun.intensity=lerp(2.1,.4,t);
       heatGroup.visible=sliceF.visible=sliceS.visible=capGlow.visible=t<0.7;
+      isoRings.forEach(r=>r.visible=t<0.85);
+      perfDots.forEach(d=>d.visible=t<0.7);
       oilPts.visible=steamPts.visible=dustPts.visible=t<0.4;
       fluidLevelM.visible=true;
       scene.fog.color.set(new THREE.Color('#1a2030').lerp(new THREE.Color('#f3eee2'),t));
       scene.fog.near=lerp(120,4000,t);scene.fog.far=lerp(400,6000,t);
     },
+    // flatten world depth into a card during Twin→Blueprint: 0..1
+    flatten:t=>{world.scale.z=lerp(1,.045,easeIO(t))},
   };
   let SKYBASE={top:'#232c4e',mid:'#4a4058',bot:'#c9805a'};
   const _setClimate=setClimate;
-  api.setClimate=k=>{const s=SKIES[k]||SKIES.dusk;SKYBASE={top:s.top,mid:s.mid,bot:s.bot};_setClimate(k)};
+  api.setClimate=k=>{const s=SKIES[k]||SKIES.dusk;SKYBASE={top:s.top,mid:s.mid,bot:s.bot,stars:s.stars};_setClimate(k)};
   setClimate('dusk');
   return api;
 }

@@ -40,7 +40,7 @@ const bpView=$('#blueprint-view'); const bp=buildBlueprint(bpView);
 // ---------- router ----------
 const ROUTES={well:'#screen-well',field:'#screen-field',arena:'#screen-arena',ledger:'#screen-ledger',impact:'#screen-impact',proof:'#screen-proof',play:'#screen-play',m:'#screen-mobile'};
 function nav(screen){
-  const wantBP=location.hash.includes('/bp');
+  const wantBP=location.hash.includes('/bp'), tpQ=location.hash.match(/tp=([\d.]+)/);
   G.screen=screen; location.hash='#/'+screen+(wantBP&&screen==='well'?'/bp':'');
   $$('.screen').forEach(s=>s.classList.remove('active'));
   $(ROUTES[screen]).classList.add('active');
@@ -51,12 +51,17 @@ function nav(screen){
   $('#well-context').style.display=screen==='m'?'none':'';
   $('#timeline-dock').style.display=(screen==='m'||screen==='play')?'none':'';
   renderScreen(screen);
+  // subtle screen fade-in
+  const el=$(ROUTES[screen]);el.style.opacity=0;el.style.transform='translateY(6px)';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.transition='opacity .35s,transform .35s';el.style.opacity=1;el.style.transform='none'}));
   // paper-wipe transition between non-well screens
   if(screen!=='well'&&prevScreen==='well')paperWipeNav();
-  if(screen==='well'&&wantBP)applyTP(1); else if(screen==='well'&&G.tp>0&&!bpState.on)applyTP(0);
+  if(screen==='well'&&tpQ){applyTP(parseFloat(tpQ[1]));snapCam()} // debug: force a transition pose
+  else if(screen==='well'&&wantBP){applyTP(1);snapCam()} else if(screen==='well'&&G.tp>0&&!bpState.on)applyTP(0);
   prevScreen=screen;
 }
 let prevScreen='well';
+function snapCam(){const c=twin.cam;c.az=c.azT;c.el=c.elT;c.dist=c.distT;c.tx=c.txT;c.ty=c.tyT;c.tz=c.tzT;twin.camera.fov=c.fovT;twin.camera.updateProjectionMatrix()}
 function paperWipeNav(){/* subtle: handled by CSS skin swap */ }
 window.addEventListener('hashchange',()=>{const h=location.hash.replace('#/','')||'well';const r=h.split('/')[0];if(ROUTES[r]&&r!==G.screen)nav(r)});
 
@@ -719,32 +724,39 @@ $('#modal-wrap').addEventListener('click',e=>{if(e.target.id==='modal-wrap')clos
 
 // ---------- MODE: Twin ⇄ Blueprint ----------
 const bpState={on:false};
-function applyTP(p){ // p:0 twin → 1 blueprint
+function applyTP(p){ // p:0 twin → 1 blueprint — parametric, fully reversible
   G.tp=p;
-  // camera: orbit to side + dolly-zoom
-  const camSeg=clamp((p-.08)/.5,0,1), zoomSeg=clamp((p-.4)/.45,0,1), wipeSeg=clamp((p-.55)/.42,0,1);
-  twin.cam.auto=p<0.05;
-  twin.cam.azT=lerp(.62,0.02,easeIO(camSeg));
-  twin.cam.elT=lerp(.34,.015,easeIO(camSeg));
-  // dolly-zoom: keep the well's on-screen height constant — d·tan(fov/2)=const
-  const fov=lerp(38,2.4,easeIO(zoomSeg));
+  const camSeg=clamp((p-.05)/.42,0,1), zoomSeg=clamp((p-.32)/.42,0,1),
+        flatSeg=clamp((p-.5)/.38,0,1), wipeSeg=clamp((p-.58)/.34,0,1), bpSeg=clamp((p-.76)/.2,0,1);
+  twin.cam.auto=p<0.04;
+  // orbit to a true side elevation (looking -Z): unit profile left, cut section right
+  twin.cam.azT=lerp(.62,Math.PI/2-.015,easeIO(camSeg));
+  twin.cam.elT=lerp(.26,.05,easeIO(camSeg));
+  twin.cam.txT=lerp(-2,-3.5,easeIO(camSeg));
+  twin.cam.tyT=lerp(-14,-12.5,easeIO(camSeg));
+  twin.cam.tzT=lerp(0,2,easeIO(camSeg));
+  // dolly-zoom → near-orthographic; end framing ~50 units tall so the slab fills the sheet
+  const fov=lerp(38,2.6,easeIO(zoomSeg));
   twin.cam.fovT=fov;
-  twin.cam.distT=76*Math.tan(19*Math.PI/180)/Math.tan(fov/2*Math.PI/180);
-  twin.drain(easeIO(zoomSeg));
-  // ui
-  $('#glass-stack').classList.toggle('away',p>.04);
-  $('#lens-bar').style.opacity=p<.1?1:0;$('#lens-bar').style.pointerEvents=p<.1?'':'none';
-  $('#leader-svg').style.opacity=p<.12?1:0;
-  // paper wipe
+  twin.cam.distT=lerp(92,72,easeIO(camSeg))*Math.tan(19*Math.PI/180)/Math.tan(fov/2*Math.PI/180);
+  twin.drain(easeIO(zoomSeg));       // colour → paper, ink edges emerge
+  twin.flatten(flatSeg);             // depth collapses: the world becomes the drawing
+  // ui retract
+  $('#glass-stack').classList.toggle('away',p>.03);
+  $('#lens-bar').style.opacity=clamp(1-(p-.06)/.07,0,1);$('#lens-bar').style.pointerEvents=p<.06?'':'none';
+  // paper wipe expanding from the wellhead's live screen position
   const pw=$('#paper-wipe');pw.classList.toggle('wiping',wipeSeg>0);
-  const r=easeOut(wipeSeg)*75;
-  pw.style.clipPath=`circle(${r}% at 38% 42%)`;
-  // blueprint hand-off
-  const bpOn=p>.93;
-  if(bpOn!==bpState.on){bpState.on=bpOn;bpView.classList.toggle('on',bpOn);if(bpOn){bp.drawOn();document.body.dataset.mode='blueprint';document.body.dataset.skin='paper'}}
-  if(!bpOn)document.body.dataset.mode='twin';
-  $('#mode-toggle [data-mode="twin"]').classList.toggle('on',!bpOn);
-  $('#mode-toggle [data-mode="blueprint"]').classList.toggle('on',bpOn);
+  const wh=twin.anchorScreen('wellhead');
+  const ox=wh&&!wh.behind?wh.x/innerWidth*100:38, oy=wh&&!wh.behind?wh.y/innerHeight*100:42;
+  pw.style.clipPath=`circle(${easeOut(wipeSeg)*140}% at ${ox}% ${oy}%)`;
+  // blueprint sheet fades in over the paper — plates draw on with a cascade
+  const bpOn=bpSeg>0;
+  if(bpOn!==bpState.on){bpState.on=bpOn;bpView.classList.toggle('on',bpOn);if(bpOn)bp.drawOn()}
+  if(bpState.on)bpView.style.opacity=clamp(bpSeg*1.5,0,1);
+  document.body.dataset.mode=bpSeg>.6?'blueprint':'twin';
+  if(G.screen==='well')document.body.dataset.skin=bpSeg>.4?'paper':'glass';
+  $('#mode-toggle [data-mode="twin"]').classList.toggle('on',!bpState.on);
+  $('#mode-toggle [data-mode="blueprint"]').classList.toggle('on',bpState.on);
 }
 let tpAnim=null;
 function toggleMode(){

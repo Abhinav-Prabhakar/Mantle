@@ -36,7 +36,8 @@ svg text{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif}
 .screen.active{display:block}
 
 /* ---------------- top bar ---------------- */
-#topbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:60;flex:none}
+#topbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:60;flex:none;transition:background .5s,border-color .5s,color .5s}
+#topbar *{transition:color .5s,border-color .5s,background .5s}
 body[data-skin="glass"] #topbar{background:linear-gradient(180deg,rgba(10,13,20,.55),rgba(10,13,20,.25));backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--g-border)}
 body[data-skin="paper"] #topbar{background:#EFE9DB;border-bottom:1.4px solid var(--p-ink);box-shadow:0 1px 0 var(--p-ink) inset,0 3px 0 -2px var(--p-ink)}
 .tb-left,.tb-right{display:flex;align-items:center;gap:8px}
@@ -414,6 +415,12 @@ body[data-skin="paper"] .sched-row .sbar i{background:var(--p-blue)}
   var(--p-bg);
   clip-path:circle(0% at 50% 45%)}
 #paper-wipe.wiping{opacity:1}
+
+/* stage vignette — darkens edges in twin mode, fades as paper takes over */
+#stage::after{content:'';position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:radial-gradient(115% 85% at 50% 42%,transparent 58%,rgba(6,8,14,.42) 100%);
+  transition:opacity .6s}
+body[data-mode="blueprint"] #stage::after,body[data-skin="paper"] #stage::after{opacity:0}
 
 /* blueprint */
 #blueprint-view{position:absolute;inset:0;z-index:13;display:none;color:var(--p-ink);background:var(--p-bg)}
