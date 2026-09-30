@@ -1,7 +1,7 @@
 # Prompt: port Mantle's Well View from plain HTML/CSS/JS to Next.js
 
-> Hand this whole file to the agent doing the port. Run it only after the backend wiring (backend.md §9 step 7)
-> has been merged, so the API client is ported too.
+> Hand this whole file to the agent doing the port. The backend and the frontend wiring are done (branch
+> `backend`), so the API client is ported too.
 
 ---
 
@@ -35,9 +35,12 @@ is the code in `app/`, plus `backend.md` for the API.
    cycle playing, advisor tab) plus the API data. The 60 fps loop must not trigger React renders: the loop
    writes to DOM refs or canvases directly exactly as today (telemetry numbers, dyno canvas, stroke strip,
    inspect tags). React owns structure; the loop owns per-frame values.
-5. **API:** port `app/js/api.js` (the backend client with offline fallback to the local sim) to typed
-   TypeScript, types generated from `backend/openapi.json` (`openapi-typescript`). Same endpoints, same
-   fallback behaviour, same "Simulated" provenance display. Next.js must proxy `/api/*` to the FastAPI service
+5. **API — no mock data, ever.** Port `app/js/api.js` (RemoteTwin + `connectApi`) and `app/js/twin-data.js` to
+   typed TypeScript, types generated from `backend/openapi.json` (`openapi-typescript`). Same endpoints, same
+   live WebSocket, same auto-reconnect. Every displayed number comes from the API; the local sim only drives
+   animation. When the API is unreachable the UI shows the explicit "API offline" state (red pill, dashes,
+   "Mantle API unavailable" in charts/section) — never fallback or invented values. Do not reintroduce any
+   fixture/mock module. Next.js must proxy `/api/*` to the FastAPI service
    (`rewrites` → `http://api:8000` in Docker, `http://localhost:8000` in dev).
 6. **No SSR of the scene.** The page shell can be server-rendered; everything WebGL/canvas is client-only.
    The loader overlay must still cover the first paint until the scene is ready.
@@ -45,7 +48,7 @@ is the code in `app/`, plus `backend.md` for the API.
 
 ## Feature inventory — every item must work identically after the port
 
-**Boot**: loader overlay ("MANTLE", bar, text), fades out when the scene is ready; error text if a module fails.
+**Boot**: loader overlay ("MANTLE", bar, text: "Connecting to the Mantle API…"), fades out when the scene is ready; error text if a module fails. Run the backend for parity checks: `cd backend && uv run mantle-api` (or `docker compose up`).
 
 **3D Well View**
 - Cut-block diorama (terrain slab, strata cut faces with heat shader, slot to the wellbore), sky with sun,
@@ -113,6 +116,7 @@ writes. Not allowed: lowering visual quality without asking.
    `&thermal`) — diff them; explain any pixel difference.
 2. A written checklist of every inventory item above, ticked with how you verified it.
 3. `pnpm build` clean, `pnpm lint` clean, Playwright e2e covering: boot, day/night, drawer states, tabs,
-   apply recommendation, inspect both stops, section enter/exit, timeline scrub, offline fallback.
+   apply recommendation, schedule plan, inspect both stops, section enter/exit, timeline scrub, the
+   API-offline state (stop the API → dashes + red pill; restart → recovers without reload), live WS telemetry.
 4. Update `docker-compose.yml` so the `web` service builds and serves `web/` (Next standalone output)
    and still proxies `/api` to the API service. `docker compose up` must work from a clean clone.
