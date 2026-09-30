@@ -3,7 +3,26 @@ name = "mantle-ml"
 version = "0.1.0"
 description = "Mantle ml package (placeholder until its build stage)"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "duckdb>=1.5.6",
+    "gymnasium>=1.3.0",
+    "joblib>=1.6.0",
+    "lightgbm>=4.7.0",
+    "mantle-data",
+    "mantle-physics",
+    "numpy>=2.5.3",
+    "onnx>=1.23.1",
+    "onnxruntime>=1.30.0",
+    "optuna>=5.0.0",
+    "pandas>=3.0.6",
+    "pyarrow>=25.0.1",
+    "scikit-learn>=1.9.1",
+    "scikit-survival>=0.28.0",
+    "scipy>=1.18.1",
+    "stable-baselines3>=2.9.0",
+    "torch>=2.14.0",
+    "typer>=0.27.2",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -11,3 +30,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mantle_ml"]
+
+[tool.uv.sources]
+mantle-physics = { workspace = true }
+mantle-data = { workspace = true }
