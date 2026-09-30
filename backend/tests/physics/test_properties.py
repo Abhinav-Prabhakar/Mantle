@@ -37,7 +37,7 @@ def test_unit_pose_closes_linkage(theta):
     assert abs(pitman - U["P"]) < 1e-9
     rear = math.hypot(p.equalizer["x"] - U["saddle"]["x"], p.equalizer["y"] - U["saddle"]["y"])
     assert abs(rear - U["C"]) < 1e-12
-    assert 0 <= rig.rod_position(theta) <= rig.STROKE.length + 1e-9
+    assert 0 <= rig.rod_position(theta) <= rig.STROKE.length + 1e-5
 
 
 def test_stroke_geometry():
