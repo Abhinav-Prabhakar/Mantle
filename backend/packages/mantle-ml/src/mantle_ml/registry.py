@@ -157,9 +157,17 @@ class Registry:
         return self._stamp("M5", self.m5.estimate(pos, load, spm))
 
     def assess_risk(self, well: dict, steam: float, spm: float, kd: float, day_in_prod: float, cycle_no: int = 1,
-                    days_since_workover: float = 90.0) -> dict:
-        cov = m4.cov_from_settings(well, steam, spm, kd, cycle_no, days_since_workover)
+                    days_since_workover: float = 90.0, history: dict | None = None) -> dict:
+        cov = m4.cov_from_settings(well, steam, spm, kd, cycle_no, days_since_workover, history=history)
         return self._stamp("M4", self.m4.assess(cov, day_in_prod))
+
+    def compare_risk(self, well: dict, steam: float, now: tuple[float, float], new: tuple[float, float], day_in_prod: float,
+                     cycle_no: int = 1, days_since_workover: float = 90.0, history: dict | None = None) -> dict:
+        """M4 with the well as it runs today (``now`` = spm, kd) versus at ``new`` settings. Only spm/kd-driven covariates
+        change; the well and its history (corrosion, age, strokes so far, event record) are identical in both."""
+        a = m4.cov_from_settings(well, steam, now[0], now[1], cycle_no, days_since_workover, history=history)
+        b = m4.cov_from_settings(well, steam, new[0], new[1], cycle_no, days_since_workover, history_spm=now[0], history=history)
+        return self._stamp("M4", self.m4.compare(a, b, day_in_prod))
 
     def score_telemetry(self, minutes: np.ndarray, **kw) -> dict:
         return self._stamp("M6", self.m6.score_series(minutes, **kw))

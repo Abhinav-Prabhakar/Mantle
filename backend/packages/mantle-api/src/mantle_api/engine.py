@@ -142,12 +142,33 @@ class Engine:
                     "impact": est["impact"], "pos": st["pos"], "load": st["load"]}
         return self.cache.get_or(("imp", wd.well_id, round(day, 1), round(spm, 3), round(kd, 3), int(steam)), run)
 
+    @staticmethod
+    def history_cov(wd: WellData) -> dict:
+        """The well's own event record over its earlier cycles (M4's frailty covariates, same shrinkage as in training)."""
+        cyc = wd.cycles[wd.cycles["cycle_no"] < wd.cycle_no]
+        days = float(np.clip(cyc["n_days"] - INJ_END - cyc["soak_days"], 0, None).sum())
+        n_un = float((wd.unseats["cycle_no"] < wd.cycle_no).sum()) if not wd.unseats.empty else 0.0
+        rods = wd.failures[wd.failures["kind"] == "rod_part"] if not wd.failures.empty else wd.failures
+        n_rod = float((rods["cycle_no"] < wd.cycle_no).sum()) if not rods.empty else 0.0
+        return {"prior_unseat_rate": (n_un + 0.3) / (days + 100) * 100, "prior_rod_rate": (n_rod + 0.3) / (days + 100) * 100}
+
     def risk(self, wd: WellData, day: float, spm: float, kd: float, steam: float) -> dict:
         def run() -> dict:
             on = wd.scenario_date(day)
             dip = max(day - SOAK_END, 0.5)
-            return self.reg.assess_risk(self.well_dict(wd), steam, spm, kd, dip, wd.cycle_no, days_since_workover(wd, on))
+            return self.reg.assess_risk(self.well_dict(wd), steam, spm, kd, dip, wd.cycle_no, days_since_workover(wd, on),
+                                        history=self.history_cov(wd))
         return self.cache.get_or(("risk", wd.well_id, round(day, 1), round(spm, 3), round(kd, 3), int(steam)), run)
+
+    def risk_compare(self, wd: WellData, day: float, spm: float, kd: float, steam: float, spm2: float, kd2: float) -> dict:
+        """M4 MTBF at today's settings vs at (spm2, kd2): identical well/history covariates, only the operating ones move."""
+        def run() -> dict:
+            on = wd.scenario_date(day)
+            dip = max(day - SOAK_END, 0.5)
+            return self.reg.compare_risk(self.well_dict(wd), steam, (spm, kd), (spm2, kd2), dip, wd.cycle_no,
+                                         days_since_workover(wd, on), history=self.history_cov(wd))
+        return self.cache.get_or(("riskc", wd.well_id, round(day, 1), round(spm, 3), round(kd, 3), int(steam),
+                                  round(spm2, 3), round(kd2, 3)), run)
 
     # ------------------------------------------------------------------ /state
     def context(self, wd: WellData, day: float) -> WellContext:
@@ -310,7 +331,7 @@ class Engine:
             dip = max(day - SOAK_END, 0.5)
             rec = self.recommend(wd, day, spm, kd, steam)
             rk = self.risk(wd, day, spm, kd, steam)
-            rkm = self.risk(wd, day, rec["spm"], rec["kd"], steam)
+            rc = self.risk_compare(wd, day, spm, kd, steam, rec["spm"], rec["kd"])
             dsw = days_since_workover(wd, on)
             cov = m4mod.cov_from_settings(self.well_dict(wd), steam, spm, kd, wd.cycle_no, dsw)
             with self.lock:
@@ -362,7 +383,11 @@ class Engine:
             return {
                 "rods": rods, "failure_window_months": s.failure_window_months, "failures": fails,
                 "unseats": {"months": months, "events": events, "hold_down_kn": float(row["hold_down_kn"]), "details": details},
-                "mtbf_days": rk["mtbf_days"], "mtbf_mantle_days": rkm["mtbf_days"], "uplift_margin": d["upliftMargin"],
+                "mtbf_days": rc["now"]["mtbf_days"], "mtbf_mantle_days": rc["new"]["mtbf_days"],
+                "mtbf_days_p10_p90": [rc["now"].get("mtbf_p10"), rc["now"].get("mtbf_p90")],
+                "mtbf_mantle_days_p10_p90": [rc["new"].get("mtbf_p10"), rc["new"].get("mtbf_p90")],
+                "mtbf_ratio": rc["mtbf_ratio"], "mtbf_ratio_p10_p90": [rc["mtbf_ratio_p10"], rc["mtbf_ratio_p90"]],
+                "mtbf_extrapolated": rc["extrapolated"], "uplift_margin": d["upliftMargin"],
                 "unseat_risk_30d": rk["risk_30d_unseat"], "rod_risk_30d": rk["risk_30d_rod"],
                 "impacts_day": imp["impacts_day"], "impacts_mantle": impm["impacts_day"], "impact_vel": imp["impact_vel"],
                 "top_rods": rk["top_rods"], "model": "M4", "version": rk.get("version"), "trained_on": rk.get("trained_on"),

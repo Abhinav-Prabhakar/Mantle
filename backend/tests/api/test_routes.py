@@ -134,6 +134,18 @@ def test_health_failures_match_database(client, engine):
     assert len(h["unseats"]["events"]) == n_un
 
 
+def test_mtbf_improvement_is_defensible(client):
+    """Was 159 -> 1169 d (7.4x): the unseat hazard vanished from the MTBF and spm-independent history moved with the setting."""
+    h = client.get(f"{W}/health").json()
+    r = h["mtbf_ratio"]
+    assert r == pytest.approx(h["mtbf_mantle_days"] / h["mtbf_days"], rel=1e-9)
+    assert 1.0 <= r <= 3.0
+    lo, hi = h["mtbf_ratio_p10_p90"]
+    assert lo <= hi and lo >= 1.0 and hi <= 5.0                       # the fold-ensemble spread is reported with the number
+    assert h["mtbf_days_p10_p90"][0] <= h["mtbf_days"] * 1.5 and h["mtbf_mantle_days_p10_p90"][1] >= h["mtbf_mantle_days"] * 0.6
+    assert isinstance(h["mtbf_extrapolated"], list)
+
+
 def test_unseat_history_is_realistic(client, engine):
     """BGW-17 showed 35 unseats in 12 months; a heavy-oil insert pump with a mechanical hold-down sees ~0-4 a year."""
     h = client.get(f"{W}/health").json()

@@ -50,3 +50,57 @@ def test_shipped_m4(shipped):
 def test_shipped_m4_unseat_target(shipped):
     m = shipped("M4")["metrics"]
     assert m["unseat_c_index_ml"] >= 0.75 and m["unseat_brier_improvement"] >= 0.20
+
+
+# ---------------------------------------------------------------- MTBF "now vs with Mantle" (methodology regressions)
+
+
+@pytest.fixture(scope="module")
+def shipped_model():
+    from mantle_data import paths
+
+    d = paths.BACKEND_DIR / "models" / "M4"
+    if not (d / "model.joblib").exists():
+        pytest.skip("no shipped M4")
+    return m4.RiskModel.load(d)
+
+
+def _well():
+    return {"steam_eff": 1.0, "pi_factor": 1.0, "visc_factor": 1.0, "corrosion_index": 0.35, "rod_stress_factor": 1.2,
+            "hold_down_kn": 25.5}
+
+
+def test_what_if_changes_only_operating_covariates():
+    a = m4.cov_from_settings(_well(), 800, 5.4, 0.5, 4, 90.0)
+    b = m4.cov_from_settings(_well(), 800, 3.5, 0.5, 4, 90.0, history_spm=5.4)
+    changed = {k for k in a if abs(a[k] - b[k]) > 1e-12}
+    assert changed and changed <= set(m4.OPERATING_COV)
+    assert a["cum_kstrokes"] == b["cum_kstrokes"]                # strokes already pumped are history, not a what-if
+    assert a["corrosion"] == b["corrosion"] and a["days_since_workover"] == b["days_since_workover"]
+
+
+def test_mtbf_now_equals_new_when_settings_equal(shipped_model):
+    a = m4.cov_from_settings(_well(), 800, 5.4, 0.5, 4, 90.0)
+    r = shipped_model.compare(a, dict(a), 25.0)
+    assert r["mtbf_ratio"] == pytest.approx(1.0)
+    assert r["mtbf_ratio_p10"] == pytest.approx(1.0) and r["mtbf_ratio_p90"] == pytest.approx(1.0)
+
+
+def test_unseat_hazard_enters_the_mtbf(shipped_model):
+    """The 1-day step difference of the Cox survival function is 0 almost everywhere: the unseat hazard used to vanish."""
+    cov = m4.cov_from_settings(_well(), 800, 5.4, 0.5, 4, 90.0)
+    r = shipped_model.assess(cov, 25.0)
+    assert r["hazard_per_day_unseat"] > 0 and r["hazard_per_day_rod"] > 0
+    assert r["mtbf_days"] == pytest.approx(1 / (r["hazard_per_day_rod"] + r["hazard_per_day_unseat"]), rel=1e-6)
+    assert r["mtbf_p10"] <= r["mtbf_days"] * 1.5 and r["mtbf_p10"] <= r["mtbf_p90"]
+
+
+def test_extrapolation_is_capped(shipped_model):
+    lo, hi = shipped_model.meta["ranges"]["impacts_day"]
+    cov = m4.cov_from_settings(_well(), 800, 5.4, 0.5, 4, 90.0)
+    wild = dict(cov, impacts_day=50 * hi, uplift_max=1e3, uplift_ratio_max=40.0)
+    r = shipped_model.assess(wild, 25.0)
+    assert "impacts_day" in r["extrapolated"] and "uplift_ratio_max" in r["extrapolated"]
+    edge = shipped_model.assess(dict(cov, impacts_day=hi, uplift_max=shipped_model.meta["ranges"]["uplift_max"][1],
+                                     uplift_ratio_max=shipped_model.meta["ranges"]["uplift_ratio_max"][1]), 25.0)
+    assert r["hazard_per_day"] == pytest.approx(edge["hazard_per_day"], rel=1e-9)

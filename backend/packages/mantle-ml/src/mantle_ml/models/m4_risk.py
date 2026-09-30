@@ -36,7 +36,14 @@ from .. import fasttwin as ft
 
 ID = "M4"
 COV = ["goodman_mean", "goodman_max", "gr_eff", "float_frac", "impacts_day", "impact_vel", "mu_mean", "uplift_mean", "uplift_max",
-       "spm", "kd", "corrosion", "stress_factor", "cycle_no", "steam_t", "days_since_workover", "cum_kstrokes", "prior_unseat_rate", "prior_rod_rate"]
+       "spm", "kd", "corrosion", "stress_factor", "cycle_no", "steam_t", "days_since_workover", "cum_kstrokes", "prior_unseat_rate", "prior_rod_rate",
+       "hold_down_kn", "uplift_ratio_mean", "uplift_ratio_max"]
+# Covariates an operating change (spm / kd) moves. Everything else is well or history (corrosion, rod stress factor, hold-down,
+# cycle number, run-time since workover, cumulated strokes, event history) and must be identical in a "with Mantle" evaluation.
+OPERATING_COV = ("goodman_mean", "goodman_max", "gr_eff", "float_frac", "impacts_day", "impact_vel", "uplift_mean", "uplift_max",
+                 "uplift_ratio_mean", "uplift_ratio_max", "spm", "kd")
+RANGE_COV = ("goodman_mean", "goodman_max", "gr_eff", "float_frac", "impacts_day", "impact_vel", "mu_mean", "uplift_mean",
+             "uplift_max", "uplift_ratio_mean", "uplift_ratio_max", "spm", "kd", "steam_t")
 HORIZON = 30.0
 
 
@@ -61,6 +68,9 @@ def cycle_covariates(daily: pd.DataFrame, cyc: pd.DataFrame, wells: pd.DataFrame
     out["corrosion"] = out["well_id"].map(w["corrosion_index"])
     out["stress_factor"] = out["well_id"].map(w["rod_stress_factor"])
     out["gr_eff"] = out["goodman_mean"] * out["stress_factor"]
+    out["hold_down_kn"] = out["well_id"].map(w["hold_down_kn"])
+    out["uplift_ratio_mean"] = out["uplift_mean"] / out["hold_down_kn"]
+    out["uplift_ratio_max"] = out["uplift_max"] / out["hold_down_kn"]
     # days since the last workover of any kind before this cycle's production start (else since 1 year before start)
     wo = workovers.groupby("well_id")["date"].apply(lambda s: sorted(pd.to_datetime(s)))
     dsw, cum = [], []
@@ -175,59 +185,123 @@ def _surv_at(model: GradientBoostingSurvivalAnalysis, X: pd.DataFrame, times) ->
 
 
 def cov_from_settings(well: dict, steam: float, spm: float, kd: float, cycle_no: int = 1, days_since_workover: float = 90.0,
-                      soak: float = 4.0) -> dict:
-    """Cycle-average covariates for a planned/what-if operating point (uses the vectorised twin)."""
+                      soak: float = 4.0, history_spm: float | None = None, history: dict | None = None) -> dict:
+    """Cycle-average covariates for a planned/what-if operating point (uses the vectorised twin).
+
+    Only the operating covariates (``OPERATING_COV``) depend on ``spm``/``kd``. ``history_spm`` is the pump speed the well has
+    actually run since its last workover: the cumulated strokes are history and do not change with a what-if speed.
+    ``history`` overrides the well-history covariates (e.g. ``prior_unseat_rate`` / ``prior_rod_rate`` from the well's records)."""
     r = ft.cycle_days(steam, spm, kd, steam_eff=float(well.get("steam_eff", 1.0)), k_oil=float(well.get("pi_factor", 1.0)))
     sl = slice(18, 111)
     fill = r["fill"][sl]
     pound = np.clip((0.85 - fill) / 0.35, 0, 1)
     mu = r["mu"][sl] * float(well.get("visc_factor", 1.0))
     gm = float(r["goodman"][sl].mean())
-    return {"goodman_mean": gm, "goodman_max": float(r["goodman"][sl].max()), "gr_eff": gm * float(well["rod_stress_factor"]),
-            "float_frac": float(np.clip((0.15 - r["margin"][sl]) / 0.3, 0, 1).mean()),
-            "impacts_day": float((spm * 1440 * pound).mean()), "impact_vel": float(((0.15 + (1 - fill) * 1.3) * spm / 5.4).mean()),
-            "mu_mean": float(mu.mean()), "uplift_mean": float(pump_uplift_kn(mu, np.pi * S_M * spm / 60, fill).mean()),
-            "uplift_max": float(pump_uplift_kn(mu, np.pi * S_M * spm / 60, fill).max()),
-            "spm": spm, "kd": kd, "corrosion": float(well["corrosion_index"]), "stress_factor": float(well["rod_stress_factor"]),
-            "cycle_no": cycle_no, "steam_t": steam, "days_since_workover": days_since_workover,
-            "cum_kstrokes": days_since_workover * spm * 1440 / 1000}
+    up = pump_uplift_kn(mu, np.pi * S_M * spm / 60, fill)
+    hd = float(well.get("hold_down_kn", 26.0))
+    cov = {"goodman_mean": gm, "goodman_max": float(r["goodman"][sl].max()), "gr_eff": gm * float(well["rod_stress_factor"]),
+           "float_frac": float(np.clip((0.15 - r["margin"][sl]) / 0.3, 0, 1).mean()),
+           "impacts_day": float((spm * 1440 * pound).mean()), "impact_vel": float(((0.15 + (1 - fill) * 1.3) * spm / 5.4).mean()),
+           "mu_mean": float(mu.mean()), "uplift_mean": float(up.mean()), "uplift_max": float(up.max()),
+           "spm": spm, "kd": kd, "corrosion": float(well["corrosion_index"]), "stress_factor": float(well["rod_stress_factor"]),
+           "cycle_no": cycle_no, "steam_t": steam, "days_since_workover": days_since_workover,
+           "cum_kstrokes": days_since_workover * (spm if history_spm is None else history_spm) * 1440 / 1000,
+           "hold_down_kn": hd, "uplift_ratio_mean": float(up.mean()) / hd, "uplift_ratio_max": float(up.max()) / hd}
+    cov.update(history or {})
+    return cov
 
 
 class RiskModel:
-    def __init__(self, rod, unseat, meta: dict):
+    """Cox models for first rod part / first unseat. ``rod_ens`` / ``unseat_ens`` are the cross-validation fold models
+    (each fitted on ~80 % of the wells): their spread is the model uncertainty reported with every MTBF."""
+
+    def __init__(self, rod, unseat, meta: dict, rod_ens=None, unseat_ens=None):
         self.rod, self.unseat, self.meta = rod, unseat, meta
+        self.rod_ens, self.unseat_ens = list(rod_ens or []), list(unseat_ens or [])
 
     @classmethod
     def load(cls, d: Path) -> RiskModel:
         d = Path(d)
         z = joblib.load(d / "model.joblib")
-        return cls(z["rod"], z["unseat"], json.loads((d / "meta.json").read_text()))
+        return cls(z["rod"], z["unseat"], json.loads((d / "meta.json").read_text()), z.get("rod_ens"), z.get("unseat_ens"))
+
+    def clip(self, cov: dict) -> tuple[dict, list[str]]:
+        """Clamp covariates to the training distribution (1st-99th percentile): a tree ensemble is flat outside it, so an
+        out-of-range what-if would otherwise read as a spurious step. Returns the clipped covariates and the names clipped."""
+        out, hit = dict(cov), []
+        for k, (lo, hi) in self.meta.get("ranges", {}).items():
+            if k in out and np.isfinite(out[k]) and not lo <= out[k] <= hi:
+                out[k] = float(np.clip(out[k], lo, hi))
+                hit.append(k)
+        return out, hit
 
     def _x(self, cov: dict) -> pd.DataFrame:
         row = {k: float(cov.get(k, self.meta["defaults"].get(k, 0.0))) for k in self.meta["features"]}
         return pd.DataFrame([row])[self.meta["features"]]
 
+    @staticmethod
+    def _risk_hazard(m, X: pd.DataFrame, t0: float) -> tuple[float, float]:
+        """(P(event in the next 30 d | survived to t0), mean hazard per day over those 30 d). The hazard is the 30-day cumulative
+        hazard / 30: a 1-day difference of the Cox step function is 0 almost everywhere."""
+        s = _surv_at(m, X, np.array([t0, t0 + HORIZON]))[0]
+        r = float(np.clip(1 - s[1] / max(s[0], 1e-9), 0, 1))
+        return r, float(-np.log(max(1 - r, 1e-9)) / HORIZON)
+
     def assess(self, cov: dict, day_in_prod: float, *, steam: float | None = None, day_twin: float = 60.0) -> dict:
-        """30-day rod-part / unseat risk (conditional on surviving to ``day_in_prod``), hazard, MTBF, per-rod localisation."""
+        """30-day rod-part / unseat risk (conditional on surviving to ``day_in_prod``), hazard, MTBF (+ P10-P90 over the fold
+        ensemble), per-rod localisation. Covariates outside the training range are clipped (``extrapolated`` names them)."""
+        raw = cov
+        cov, hit = self.clip(cov)
         X = self._x(cov)
         t0 = max(float(day_in_prod), 0.5)
         out: dict[str, Any] = {}
         haz = 0.0
         for name, m in (("rod", self.rod), ("unseat", self.unseat)):
-            s = _surv_at(m, X, np.array([t0, t0 + HORIZON, t0 + 1.0]))[0]
-            risk = float(np.clip(1 - s[1] / max(s[0], 1e-9), 0, 1))
-            h = float(max(-np.log(max(s[2] / max(s[0], 1e-9), 1e-9)), 0.0))
-            out[f"risk_30d_{name}"] = risk
-            out[f"hazard_per_day_{name}"] = h
+            risk, h = self._risk_hazard(m, X, t0)
+            out[f"risk_30d_{name}"], out[f"hazard_per_day_{name}"] = risk, h
             haz += h
         out["risk_30d"] = 1 - (1 - out["risk_30d_rod"]) * (1 - out["risk_30d_unseat"])
         out["hazard_per_day"] = haz
-        out["mtbf_days"] = float(min(1.0 / max(haz, 1e-6), 5000.0))
-        fat = rod_fatigue(cov, day_in_prod, steam=steam, day_twin=day_twin)
+        out["mtbf_days"] = _mtbf(haz)
+        ens = self.member_hazards(X, t0)
+        if len(ens):
+            m_ = np.array([_mtbf(h) for h in ens])
+            out["mtbf_p10"], out["mtbf_p90"] = float(np.percentile(m_, 10)), float(np.percentile(m_, 90))
+        out["extrapolated"] = hit
+        fat = rod_fatigue(raw, day_in_prod, steam=steam, day_twin=day_twin)
         out["rods_damage"] = fat["damage"]
         out["top_rods"] = top_rods(fat)
         out.update({"model": ID, "version": self.meta["version"], "source": self.meta["source"]})
         return out
+
+    def member_hazards(self, X: pd.DataFrame, t0: float) -> np.ndarray:
+        """Combined (rod + unseat) daily hazard of every fold-model pair."""
+        n = min(len(self.rod_ens), len(self.unseat_ens))
+        return np.array([self._risk_hazard(self.rod_ens[i], X, t0)[1] + self._risk_hazard(self.unseat_ens[i], X, t0)[1]
+                         for i in range(n)])
+
+    def compare(self, cov_now: dict, cov_new: dict, day_in_prod: float, *, steam: float | None = None,
+                day_twin: float = 60.0) -> dict:
+        """MTBF now vs under ``cov_new`` (same well and history, only the operating covariates differ), with the ratio's P10-P90
+        across the fold ensemble (each member compared with itself, so shared model error cancels)."""
+        a = self.assess(cov_now, day_in_prod, steam=steam, day_twin=day_twin)
+        b = self.assess(cov_new, day_in_prod, steam=steam, day_twin=day_twin)
+        t0 = max(float(day_in_prod), 0.5)
+        ha = self.member_hazards(self._x(self.clip(cov_now)[0]), t0)
+        hb = self.member_hazards(self._x(self.clip(cov_new)[0]), t0)
+        ratios = np.array([_mtbf(y) / _mtbf(x) for x, y in zip(ha, hb, strict=True)]) if len(ha) else np.array([])
+        ratio = b["mtbf_days"] / a["mtbf_days"]
+        return {"now": a, "new": b, "mtbf_ratio": float(ratio),
+                "mtbf_ratio_p10": float(np.percentile(ratios, 10)) if len(ratios) else None,
+                "mtbf_ratio_p90": float(np.percentile(ratios, 90)) if len(ratios) else None,
+                "extrapolated": sorted(set(a["extrapolated"]) | set(b["extrapolated"]))}
+
+
+MTBF_CAP_DAYS = 5000.0
+
+
+def _mtbf(hazard_per_day: float) -> float:
+    return float(min(1.0 / max(hazard_per_day, 1e-6), MTBF_CAP_DAYS))
 
 
 def _fit(X: pd.DataFrame, y, quick: bool) -> GradientBoostingSurvivalAnalysis:
@@ -255,8 +329,9 @@ def train(out_dir: Path, quick: bool = False) -> dict:
         folds = features.group_folds(ev["well_id"], 3 if quick else 5)
         met: dict = {"n_cycles": int(len(ev))}
         res: dict[str, dict] = {}
-        models = {}
+        models: dict = {}
         for kind in ("rod", "unseat"):
+            models[f"{kind}_ens"] = []
             y = survival_xy(ev, kind)
             X = ev[feats]
             met[f"n_events_{kind}"] = int(y["event"].sum())
@@ -267,6 +342,7 @@ def train(out_dir: Path, quick: bool = False) -> dict:
                 if y["event"][tr].sum() < 3:
                     continue
                 m = _fit(X[tr], y[tr], quick)
+                models[f"{kind}_ens"].append(m)
                 risk[te] = m.predict(X[te])
                 s30_ml[te] = _surv_at(m, X[te], np.array([tt]))[:, 0]
                 kk, lam = weibull_fit(y[tr])
@@ -298,7 +374,9 @@ def train(out_dir: Path, quick: bool = False) -> dict:
     joblib.dump(models, d / "model.joblib", compress=3)
     meta = {"version": "1.0.0" + ("-quick" if quick else ""), "source": "physics_synthetic", "features": feats,
             "trained_at": common.now_iso(), "n_cycles": int(len(ev)), "data_hash": common.data_hash([ev[COV]]),
-            "defaults": {c: float(ev[c].mean()) for c in feats}, "text_features": any(c.startswith("txt") for c in feats)}
+            "defaults": {c: float(ev[c].mean()) for c in feats},
+            "ranges": {c: [float(ev[c].quantile(0.005)), float(ev[c].quantile(0.995))] for c in RANGE_COV},
+            "text_features": any(c.startswith("txt") for c in feats)}
     (d / "meta.json").write_text(json.dumps(meta))
     r = res["rod"]
     evd = {"metrics": met, "primary": {"name": "c_index_rod", "value": r["c_index_ml"], "target": 0.75,
@@ -306,8 +384,8 @@ def train(out_dir: Path, quick: bool = False) -> dict:
                                       "secondary": {"name": "brier_improvement_30d", "value": r.get("brier_improvement"),
                                                     "target": 0.20}},
            "notes": [f"Unseat model: C-index {res['unseat']['c_index_ml']:.2f} (target 0.75) and Brier(30 d) improvement "
-                     f"{res['unseat'].get('brier_improvement', float('nan')):.2f}: MISSED. S5 draws a per-well hidden hold-down capacity that no covariate "
-                     "observes, and only the first unseat per production period is modelled."],
+                     f"{res['unseat'].get('brier_improvement', float('nan')):.2f}: MISSED. Unseats are rare after the S5 recalibration (~0.8 per well-year), "
+                     "and only the first unseat per production period is modelled."],
            "train_seconds": tm["seconds"], "source": "physics_synthetic", "version": meta["version"],
            "data_hash": meta["data_hash"], "quick": quick}
     card = f"""# M4 failure & unseat risk
@@ -317,8 +395,9 @@ simulated from the physics hazard, high C-index shows the model recovers that ha
 - Covariates: {", ".join(COV)}. 5-fold CV grouped by well. Metrics: {json.dumps(met)}
 - Baseline: Weibull on run time only (Brier at 30 d) and days-since-workover as the age-only risk score (C-index; a marginal Weibull has C=0.5).
 - Per-rod: Goodman-by-depth profile x stress factor -> Miner damage rate; top rods = highest 30-day failure probability. Top-3 hit rate on S5 failures is reported but is partly circular (same physics).
-- Unseat model MISSES its targets (hidden per-well hold-down capacity in S5 is unobservable); see eval.json notes.
-- Limits: cycle-average covariates; first event per period only; MTBF = 1/current hazard (exponential approximation); S3 telemetry not used (only 20 wells).
+- Unseat model MISSES its targets (rare events, first per production period only); see eval.json notes.
+- MTBF = 1 / (rod + unseat hazard), each hazard the 30-day cumulative hazard / 30 (a 1-day difference of the Cox step function is ~0). Covariates are clipped to the 0.5-99.5 % training range (`meta.ranges`, reported as `extrapolated`). The uncertainty is the spread of the cross-validation fold models (P10-P90). A "with Mantle" MTBF (`compare`) changes only the operating covariates (goodman, float, impacts, uplift, spm, kd); well and history covariates (corrosion, hold-down, age, strokes so far, event record) are identical.
+- Limits: cycle-average covariates; first event per period only; exponential MTBF approximation; S3 telemetry not used (only 20 wells).
 """
     return common.write_eval(d, ID, evd, card)
 

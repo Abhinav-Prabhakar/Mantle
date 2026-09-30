@@ -127,7 +127,7 @@
       "version": "1.0.0"
     },
     "M4": {
-      "data_hash": "385a567c04ed3224",
+      "data_hash": "e6cda07ca7db4d5a",
       "id": "M4",
       "metrics": {
         "n_cycles": 619,
@@ -141,29 +141,29 @@
           "secondary": {
             "name": "brier_improvement_30d",
             "target": 0.2,
-            "value": 0.71034
+            "value": 0.694357
           },
           "target": 0.75,
-          "value": 0.971678
+          "value": 0.9691
         },
-        "rod_brier_30d_ml": 0.016285,
+        "rod_brier_30d_ml": 0.017183,
         "rod_brier_30d_weibull": 0.056221,
-        "rod_brier_improvement": 0.71034,
+        "rod_brier_improvement": 0.694357,
         "rod_c_index_age_baseline": 0.454216,
-        "rod_c_index_ml": 0.971678,
+        "rod_c_index_ml": 0.9691,
         "rod_top3_hit": 0.396,
         "rod_top3_random": 0.021429,
-        "unseat_brier_30d_ml": 0.01632,
+        "unseat_brier_30d_ml": 0.016249,
         "unseat_brier_30d_weibull": 0.016244,
-        "unseat_brier_improvement": -0.004676,
+        "unseat_brier_improvement": -0.000314,
         "unseat_c_index_age_baseline": 0.44203,
-        "unseat_c_index_ml": 0.647842
+        "unseat_c_index_ml": 0.67851
       },
       "quick": false,
-      "size_bytes": 62071,
+      "size_bytes": 357936,
       "source": "physics_synthetic",
-      "train_seconds": 4.38,
-      "trained_at": "2026-09-30T10:57:51+00:00",
+      "train_seconds": 4.95,
+      "trained_at": "2026-09-30T11:03:40+00:00",
       "version": "1.0.0"
     },
     "M5": {
