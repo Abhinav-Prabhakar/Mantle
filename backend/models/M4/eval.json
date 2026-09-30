@@ -1,0 +1,39 @@
+{
+  "model": "M4",
+  "metrics": {
+    "n_cycles": 619,
+    "n_events_rod": 67,
+    "n_events_unseat": 155,
+    "rod_c_index_ml": 0.971457,
+    "rod_c_index_age_baseline": 0.467944,
+    "rod_brier_30d_ml": 0.015329,
+    "rod_brier_30d_weibull": 0.050271,
+    "rod_brier_improvement": 0.695067,
+    "unseat_c_index_ml": 0.679894,
+    "unseat_c_index_age_baseline": 0.470971,
+    "unseat_brier_30d_ml": 0.035743,
+    "unseat_brier_30d_weibull": 0.03512,
+    "unseat_brier_improvement": -0.017727,
+    "rod_top3_hit": 0.388,
+    "rod_top3_random": 0.021429
+  },
+  "primary": {
+    "name": "c_index_rod",
+    "value": 0.971457,
+    "target": 0.75,
+    "baseline_name": "weibull_age",
+    "baseline": 0.467944,
+    "direction": "higher",
+    "secondary": {
+      "name": "brier_improvement_30d",
+      "value": 0.695067,
+      "target": 0.2
+    }
+  },
+  "train_seconds": 7.09,
+  "source": "physics_synthetic",
+  "version": "1.0.0",
+  "data_hash": "eabea3e2dc2bf162",
+  "quick": false,
+  "trained_at": "2026-09-30T07:54:53+00:00"
+}

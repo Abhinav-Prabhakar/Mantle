@@ -34,7 +34,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests", "packages"]
 addopts = "-ra --import-mode=importlib"
-markers = ["network: hits the real network (skipped unless --run-network)"]
+markers = ["network: hits the real network (skipped unless --run-network)", "slow: long-running (skipped unless --runslow)"]
 filterwarnings = ["error::RuntimeWarning"]
 
 [tool.ruff]

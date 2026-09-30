@@ -1,0 +1,1 @@
+{"version": "1.0.0", "source": "physics_synthetic", "limits": {"margin": 0.15, "fill": 0.8, "goodman": 0.9, "torque": 1.0}, "trained_at": "2026-09-30T08:19:28+00:00", "data_hash": "aef049e746e89862"}

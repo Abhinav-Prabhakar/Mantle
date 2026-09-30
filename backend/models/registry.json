@@ -89,6 +89,147 @@
       "train_seconds": 21.86,
       "trained_at": "2026-09-30T07:48:11+00:00",
       "version": "1.0.0"
+    },
+    "M3": {
+      "data_hash": "0995b0a3a9f15858",
+      "id": "M3",
+      "metrics": {
+        "ece_after_temperature": 0.011599,
+        "epochs": 12,
+        "macro_f1_cnn": 0.939065,
+        "macro_f1_fourier_knn": 0.586624,
+        "macro_f1_perturbed_cnn": 0.853299,
+        "macro_f1_perturbed_fourier_knn": 0.431767,
+        "n_test": 12000,
+        "n_train": 54000,
+        "params": 174092,
+        "primary": {
+          "baseline": 0.586624,
+          "baseline_name": "fourier_knn",
+          "direction": "higher",
+          "name": "macro_f1_synthetic_test",
+          "secondary": {
+            "baseline": 0.431767,
+            "name": "macro_f1_perturbed",
+            "target": 0.9,
+            "value": 0.853299
+          },
+          "target": 0.95,
+          "value": 0.939065
+        },
+        "temperature": 0.634534
+      },
+      "quick": false,
+      "size_bytes": 1411084,
+      "source": "physics_synthetic",
+      "train_seconds": 755.06,
+      "trained_at": "2026-09-30T08:15:18+00:00",
+      "version": "1.0.0"
+    },
+    "M4": {
+      "data_hash": "eabea3e2dc2bf162",
+      "id": "M4",
+      "metrics": {
+        "n_cycles": 619,
+        "n_events_rod": 67,
+        "n_events_unseat": 155,
+        "primary": {
+          "baseline": 0.467944,
+          "baseline_name": "weibull_age",
+          "direction": "higher",
+          "name": "c_index_rod",
+          "secondary": {
+            "name": "brier_improvement_30d",
+            "target": 0.2,
+            "value": 0.695067
+          },
+          "target": 0.75,
+          "value": 0.971457
+        },
+        "rod_brier_30d_ml": 0.015329,
+        "rod_brier_30d_weibull": 0.050271,
+        "rod_brier_improvement": 0.695067,
+        "rod_c_index_age_baseline": 0.467944,
+        "rod_c_index_ml": 0.971457,
+        "rod_top3_hit": 0.388,
+        "rod_top3_random": 0.021429,
+        "unseat_brier_30d_ml": 0.035743,
+        "unseat_brier_30d_weibull": 0.03512,
+        "unseat_brier_improvement": -0.017727,
+        "unseat_c_index_age_baseline": 0.470971,
+        "unseat_c_index_ml": 0.679894
+      },
+      "quick": false,
+      "size_bytes": 62904,
+      "source": "physics_synthetic",
+      "train_seconds": 7.09,
+      "trained_at": "2026-09-30T07:54:53+00:00",
+      "version": "1.0.0"
+    },
+    "M5": {
+      "data_hash": "b61db26a68e763d9",
+      "id": "M5",
+      "metrics": {
+        "mae_amps_ml": 0.377317,
+        "mae_amps_threshold": 25.215804,
+        "mae_fillage_ml": 0.719267,
+        "mae_fillage_phys_raw": 37.063879,
+        "mae_fillage_threshold": 35.966274,
+        "mae_impact_vel_ml": 0.010259,
+        "mae_impact_vel_threshold": 0.563883,
+        "mae_impacts_day_ml": 55.277615,
+        "mae_impacts_day_threshold": 2814.266205,
+        "primary": {
+          "baseline": 35.966274,
+          "baseline_name": "fixed_thresholds",
+          "direction": "lower",
+          "name": "mae_fillage_pts",
+          "target": 4.0,
+          "value": 0.719267
+        }
+      },
+      "quick": false,
+      "size_bytes": 657224,
+      "source": "physics_synthetic",
+      "train_seconds": 8.48,
+      "trained_at": "2026-09-30T07:51:53+00:00",
+      "version": "1.0.0"
+    },
+    "O1": {
+      "data_hash": "aef049e746e89862",
+      "id": "O1",
+      "metrics": {
+        "baseline_infeasible_share": 0.94,
+        "impacts_reduction_all_states": 0.946163,
+        "impacts_reduction_pounding_states": 0.951474,
+        "latency_ms_p50": 8.192021,
+        "latency_ms_p95": 12.89364,
+        "n_pounding_states": 384,
+        "n_states": 400,
+        "objective_gain_inr_per_day_mean": 475222.403292,
+        "oil_change_all_states": -0.008639,
+        "oil_change_pounding_states": -0.013928,
+        "primary": {
+          "baseline": 0.0,
+          "baseline_name": "fixed_spm (0 % by definition)",
+          "direction": "higher",
+          "name": "impacts_reduction_all_states",
+          "secondary": {
+            "name": "oil_change_all_states",
+            "target": -0.02,
+            "value": -0.008639
+          },
+          "target": 0.15,
+          "value": 0.946163
+        },
+        "recommended_infeasible_share": 0.0
+      },
+      "quick": false,
+      "size_bytes": 2529,
+      "source": "physics_synthetic",
+      "train_seconds": 3.96,
+      "trained_at": "2026-09-30T08:19:28+00:00",
+      "version": "1.0.0"
     }
   }
 }

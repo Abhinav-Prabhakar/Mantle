@@ -1,0 +1,1 @@
+{"version": "1.0.0", "source": "physics_synthetic", "features": ["spm", "ptp_load", "mean_load", "min_over_mean", "span", "area_kj", "up_mean", "dn_mean", "drop_x", "drop_kn", "drop_sev", "fill_phys", "up_dn_ratio", "load_std"], "trained_at": "2026-09-30T07:51:53+00:00", "n_train": 5000, "data_hash": "b61db26a68e763d9"}

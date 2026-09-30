@@ -45,17 +45,30 @@ def update_registry(root: Path, mid: str, ev: dict) -> None:
     p.write_text(json.dumps(reg, indent=2, sort_keys=True))
 
 
-def train(ids: list[str] | None = None, quick: bool = False, root: Path | None = None, log=print) -> dict[str, dict]:
+def train(ids: list[str] | None = None, quick: bool = False, root: Path | None = None, log=print,
+          in_process: bool = False) -> dict[str, dict]:
+    """Train models. Each one runs in its own subprocess (see the OpenMP note in ``mantle_ml/__init__``)."""
+    import os
+    import subprocess
+    import sys
+
     root = Path(root) if root else common.models_dir()
     ids = ids or available()
     out: dict[str, dict] = {}
     for mid in ids:
         log(f"[{mid}] training{' (quick)' if quick else ''} ...")
-        ev = _mod(mid).train(root, quick=quick)
-        ev.setdefault("trained_at", common.now_iso())
-        (root / mid / "eval.json").write_text(json.dumps(ev, indent=2))
-        update_registry(root, mid, ev)
-        p = ev.get("primary", {})
-        log(f"[{mid}] done in {ev.get('train_seconds')} s  primary={p.get('name')}={p.get('value')}")
+        if in_process:
+            ev = _mod(mid).train(root, quick=quick)
+            ev.setdefault("trained_at", common.now_iso())
+            (root / mid / "eval.json").write_text(json.dumps(ev, indent=2))
+            update_registry(root, mid, ev)
+        else:
+            env = dict(os.environ, MANTLE_TORCH_THREADS="8" if mid == "M3" else "1")
+            cmd = [sys.executable, "-m", "mantle_ml.train_one", mid, "--root", str(root)] + (["--quick"] if quick else [])
+            r = subprocess.run(cmd, env=env, capture_output=True, text=True)
+            if r.returncode != 0:
+                raise RuntimeError(f"training {mid} failed ({r.returncode}):\n{r.stdout[-1500:]}\n{r.stderr[-3000:]}")
+            log(r.stdout.strip().splitlines()[-1] if r.stdout.strip() else f"[{mid}] done")
+            ev = json.loads((root / mid / "eval.json").read_text())
         out[mid] = ev
     return out
