@@ -125,7 +125,7 @@ def health(e: Eng) -> dict:
 @router.get("/meta", tags=["service"])
 def meta(e: Eng) -> dict:
     s = e.s
-    sources = [{"id": "physics-synthetic", "kind": "physics_synthetic",
+    sources: list[dict[str, Any]] = [{"id": "physics-synthetic", "kind": "physics_synthetic",
                 "name": "Physics-twin synthetic field records (S1 roster, S2 cycles, S5 failures)", "licence": "generated"}]
     sources += [{**v, "in_database": e.store.table_count(t) > 0} for t, v in SOURCES.items()]
     models = [{"id": r["id"], "loaded": r["loaded"], "version": r["version"], "trained_at": r["trained_at"],
