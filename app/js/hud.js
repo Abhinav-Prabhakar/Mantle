@@ -316,9 +316,11 @@ export class Hud {
         <div class="lv-track"><i class="lv-span" style="left:${l}%;width:${w}%"></i><i class="lv-ghost" style="left:${X(a)}%"></i><i class="lv-dot" style="left:${X(b)}%"></i></div></div>`;
     }).join('');
     const joint = P.inrPerCycle > 0 ? clamp(P.jointShare / P.inrPerCycle, 0, 1) : 0;
-    $('dividend').innerHTML = `<div class="dv-top"><b>${P.inrPerCycle >= 0 ? '+' : ''}${inr(P.inrPerCycle)}</b><span>per cycle vs today</span></div>
+    const horizon = P.basis?.inrPerCycleHorizonDays, pc = P.perCycle;
+    const per = num(horizon) ? `per ${Math.round(horizon)} days vs today` : 'per cycle vs today';
+    $('dividend').innerHTML = `<div class="dv-top"><b>${P.inrPerCycle >= 0 ? '+' : ''}${inr(P.inrPerCycle)}</b><span>${per}</span></div>
       <div class="dv-bars"><div><label>Today</label><i style="width:${100 / (1 + Math.max(0, P.oilLift)) - 0.5}%"></i></div><div><label>Mantle</label><i style="width:${100 * (1 - joint * Math.max(0, P.oilLift))}%"></i><i class="joint" style="width:${100 * joint * Math.max(0, P.oilLift) + 0.6}%"></i></div></div>
-      <div class="dv-sub">${P.oilLift >= 0 ? '+' : ''}${(P.oilLift * 100).toFixed(0)}% oil · SOR ${fx(P.sor[0])} → ${fx(P.sor[1])} · <span class="jt">${inr(P.jointShare)}</span> only from tuning steam &amp; pump together</div>`;
+      <div class="dv-sub">${P.oilLift >= 0 ? '+' : ''}${(P.oilLift * 100).toFixed(0)}% oil per day${pc && num(pc.practiceInrPerDay) ? ` · ${inr(pc.practiceInrPerDay)} → ${inr(pc.mantleInrPerDay)}/day` : ''} · SOR ${fx(P.sor[0], 2)} → ${fx(P.sor[1], 2)} · <span class="jt">${inr(P.jointShare)}</span> only from tuning steam &amp; pump together</div>`;
     const pb = $('plan-apply');
     if (!pb.textContent.startsWith('Scheduled') && pb.textContent !== 'Scheduling…') { pb.disabled = false; pb.textContent = 'Schedule for next cycle'; }
   }
