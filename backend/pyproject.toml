@@ -44,10 +44,11 @@ src = ["packages/*/src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "SIM", "C4"]
-ignore = ["E501", "N802", "N803", "N806", "N815", "N816", "E741", "B905", "SIM108"]
+ignore = ["E501", "N802", "N803", "N806", "N815", "N816", "E741", "B905", "SIM108", "C408"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["N", "E501"]
+"**/cli.py" = ["B008"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -55,4 +56,4 @@ strict = false
 warn_unused_ignores = true
 exclude = ["/tests/"]
 ignore_missing_imports = true
-files = ["packages/mantle-physics/src", "packages/mantle-data/src"]
+files = ["packages/mantle-physics/src", "packages/mantle-data/src", "packages/mantle-ml/src"]

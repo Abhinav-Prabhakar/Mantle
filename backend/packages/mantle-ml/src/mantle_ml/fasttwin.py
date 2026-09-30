@@ -82,7 +82,7 @@ def tables() -> dict[str, np.ndarray]:
 def save_tables(path: Path | None = None) -> Path:
     p = path or default_path()
     p.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(p, **build_tables())
+    np.savez_compressed(p, **build_tables())  # type: ignore[arg-type]
     return p
 
 
@@ -105,7 +105,7 @@ def kd_consts(kd) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """(vUp, vDn, aPk, iDrag) interpolated over kd."""
     t = tables()
     k = np.clip(np.asarray(kd, dtype=float), KDS[0], KDS[-1])
-    return tuple(np.interp(k, t["kds"], t["kd"][:, j]) for j in range(4))  # type: ignore[return-value]
+    return tuple(np.interp(k, t["kds"], t["kd"][:, j]) for j in range(4))
 
 
 def _softmin(a, b, p: float = 10.0):
