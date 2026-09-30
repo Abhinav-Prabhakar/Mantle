@@ -28,6 +28,11 @@ def llm_dir() -> Path:
     return _mk(data_dir() / "llm")
 
 
+def packs_dir() -> Path:
+    """Paste-and-return LLM packs (repo-root ``llm-packs/``); override with ``MANTLE_PACKS_DIR``."""
+    return Path(os.environ.get("MANTLE_PACKS_DIR", BACKEND_DIR.parent / "llm-packs"))
+
+
 def reference_dir() -> Path:
     return _mk(data_dir() / "reference")
 

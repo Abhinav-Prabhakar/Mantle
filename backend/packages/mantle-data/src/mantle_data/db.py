@@ -8,7 +8,7 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
-from .paths import db_path, processed_dir, reference_dir, synthetic_dir
+from .paths import db_path, llm_dir, processed_dir, reference_dir, synthetic_dir
 
 # tables copied into the database file (small) from a parquet file under synthetic/ or processed/
 SYNTH_TABLES = ["wells", "cycles", "cycle_daily", "failures", "unseats", "workovers", "optimiser_traces",
@@ -59,11 +59,48 @@ def load(synthetic: Path | None = None, processed: Path | None = None, path: Pat
                 con.execute(
                     f"CREATE OR REPLACE VIEW {name} AS SELECT * FROM read_parquet({_q(base / pattern)}{extra})"
                 )
+        _load_llm(con)
         for (t,) in con.execute("SELECT table_name FROM information_schema.tables").fetchall():
             counts[t] = int(con.execute(f'SELECT count(*) FROM "{t}"').fetchone()[0])  # type: ignore[index]
     finally:
         con.close()
     return counts
+
+
+def _load_llm(con: duckdb.DuckDBPyConnection) -> int:
+    """(Re)create ``llm_records`` from every ``data/llm/<spec>.jsonl`` (record + variables kept as JSON text)."""
+    import json
+
+    rows = []
+    for f in sorted(llm_dir().glob("L*.jsonl")):
+        if f.name.endswith(".rejects.jsonl"):
+            continue
+        for line in f.read_text().splitlines():
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if "record" not in r:
+                continue
+            rows.append({"spec": r.get("spec", f.stem), "item_id": r.get("item_id") or f"{f.stem}-{r.get('idx', 0):05d}",
+                         "idx": r.get("idx"), "source": r.get("source", "llm_synthetic"), "model": r.get("model"),
+                         "created_at": r.get("created_at"), "variables": json.dumps(r.get("variables", {})),
+                         "record": json.dumps(r["record"])})
+    if not rows:
+        return 0
+    df = pd.DataFrame(rows)
+    con.register("_llm_df", df)
+    con.execute("CREATE OR REPLACE TABLE llm_records AS SELECT * FROM _llm_df")
+    con.unregister("_llm_df")
+    return len(rows)
+
+
+def load_llm(path: Path | str | None = None) -> int:
+    con = connect(path)
+    try:
+        return _load_llm(con)
+    finally:
+        con.close()
 
 
 def stats(path: Path | str | None = None) -> dict[str, int]:

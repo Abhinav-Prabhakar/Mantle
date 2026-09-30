@@ -114,6 +114,39 @@ def llm_estimate(spec: str = typer.Argument("all"), n: int = typer.Option(0, hel
         typer.echo(json.dumps(row))
 
 
+@llm_app.command("pack")
+def llm_pack(spec: str = typer.Argument("all", help="L1..L13 or all"),
+             n: int = typer.Option(0, help="NEW items to add (0 = starter default per spec)"),
+             batch: int = typer.Option(0, help="items per file (0 = default per spec)"),
+             seed: int = typer.Option(20260930), out: str = typer.Option("", help="packs dir (default: <repo>/llm-packs)"),
+             retry_failed: bool = typer.Option(False, "--retry-failed", help="only failed/missing item_ids")) -> None:
+    """Render paste-ready Markdown batches for a chat LLM."""
+    from .llm.pack import pack as do_pack
+    from .llm.pack import pack_retry, spec_ids
+    from .llm.sampling import Context
+
+    ctx = None if retry_failed else Context.load()
+    for sid in spec_ids(spec):
+        if retry_failed:
+            r = pack_retry(sid, batch or None, out or None)
+            typer.echo(f"{sid}: {r['items']} failed/missing items -> {r['batches']} retry file(s)")
+        else:
+            r = do_pack(sid, n or None, batch or None, seed, out or None, ctx)
+            typer.echo(f"{sid}: {r['items']} items -> {r['batches']} file(s)")
+        for f in r["files"]:
+            typer.echo(f"  {f}")
+
+
+@llm_app.command("import")
+def llm_import(path: str = typer.Argument(..., help="reply file or directory (e.g. ../llm-packs)"),
+               packs: str = typer.Option("", help="packs dir holding the manifests"),
+               no_db: bool = typer.Option(False, "--no-db")) -> None:
+    """Validate + dedupe chat-LLM replies and append them to data/llm/<spec>.jsonl and DuckDB."""
+    from .llm.importer import format_report, import_replies
+
+    typer.echo(format_report(import_replies(path, packs or None, load_db=not no_db)))
+
+
 @llm_app.command("run")
 def llm_run(spec: str, n: int = typer.Option(100), model: str = typer.Option("claude-sonnet-5-5"),
             provider: str = typer.Option("anthropic", help="anthropic | openai-compatible"),
