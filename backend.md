@@ -207,6 +207,50 @@ Base `/api`. All JSON; snake_case on the wire; the client maps to the UI's camel
 | `POST /wells/{id}/apply` · `POST /wells/{id}/plan/schedule` | apply recommendation / schedule plan (persisted, audit-logged) |
 | `WS /wells/{id}/live` | 4 Hz: `{t, theta, rod_pos, load, amps, hz, spm_actual, thp, chp, anomaly_score}` |
 
+### 6a. Wire contract v1 (exact shapes the frontend client `app/js/api.js` consumes)
+
+Keys may be snake_case or camelCase; the client camel-cases recursively (`p_inj`→`pInj`, `oil_p10`→`oilP10`).
+Physics objects are emitted with the physics package's `to_json()` (already camelCase, identical to the JS sim).
+All scenario endpoints accept the query `day, spm, kd, steam` (floats; steam integer) and are **stateless**:
+same query → same answer (cache by query). Every response carries `source` and, where ML is involved, `model`.
+
+```jsonc
+GET /api/health            {"status":"ok","version":"…","models_loaded":["M0",…]}
+GET /api/meta              {"data_source":"physics_synthetic","sources":[{"id":"3w","kind":"real","licence":"CC BY 4.0"},…],
+                            "models":[{"id":"M3","version":"…","trained_at":"…","metrics":{…}}],"generated_at":"…"}
+GET /api/wells             [{"id":"BGW-17","name":"BGW-17","cycle":4,…}]
+GET /api/wells/{id}        {"id","field":"Baghewala","reservoir":"Jodhpur Sandstone",
+                            "fluid":{"api":"17–19","asphaltene":9.2,"t_res":47,"p_res":3.1,"dead_oil_cp":15400},
+                            "completion":{…},"rods":{"count":140,"length_m":7.62,"tapers":[{"label":"1″","to":400},…]}}
+GET /api/wells/{id}/state  {"params":{day,spm,kd,steam},
+                            "metrics":{ …exactly WellSim.metrics().to_json() incl. alerts[] … },
+                            "recommendation":{"title","detail","spm","kd","hz","stroke","deltas":{"oil","float","energy","impacts"},"confidence","model":"O1"},
+                            "derived":{ …exactly mantle_physics.derive() keys: hz, amps, ampsAvg, profile[36], stroke, thp, chp, pip, flowT, pRes,
+                                        counterbalance, beamLoad, impactsDay, impactsMantle, impactVel, uplift, upliftMargin, unseatRisk,
+                                        cost{steamDay,powerDay,maintDay,chemDay,costDay,costBbl}, recovery … (ML-refined where a model exists: M5, M4) },
+                            "source":"physics_synthetic"}
+GET /api/wells/{id}/series?spm&kd&steam
+                           { …WellSim.series().to_json() (day,T,mu,oil,oilP10,oilP90,spmSafe,floatMargin,sor) with oilP10/oilP90 from M2 …,
+                            "past_cycles":[{"n":1,"oil":[121 floats]},…], "plan_curve":{"day":[…],"oil":[…],"cutoff":68}, "model":"M2" }
+GET /api/wells/{id}/profile  …WellSim.profile().to_json() (depth,Tfluid,Tformation,mu,pressure,rodStress,depositionTop,depositionBot)
+GET /api/wells/{id}/dyno   { …WellSim.dynoCard(160).to_json() (surface,downhole,xMax,fMin,fMax,cls,clsConf) with cls/clsConf from M3 …,
+                            "class_probs":{"normal":0.02,…}, "impact":{"x":…,"f":…}|null, "model":"M3" }
+GET /api/wells/{id}/health {"rods":[{"index":0,"depth_m":3.8,"taper":"1″","fatigue":0.61,"failed":false}, …140],
+                            "failures":[{"rod":57,"depth":432,"size":"⅞″","mode":"…","date":"14 Mar 2026","cause":"…"}],
+                            "unseats":{"months":["Oct",…12],"events":[2,5,9],"hold_down_kn":26},
+                            "mtbf_days":142,"mtbf_mantle_days":260,"uplift_margin":1.4,"unseat_risk_30d":0.22,"rod_risk_30d":0.08,
+                            "impacts_day":5200,"impacts_mantle":0,"impact_vel":0.65,"model":"M4"}
+GET /api/wells/{id}/plan/next-cycle
+                           {"practice":{"steam":800,"p_inj":9.0,"soak":4,"cutoff":120},"mantle":{"steam":920,"p_inj":9.8,"soak":6,"cutoff":68},
+                            "ranges":{"steam":[500,1200],"p_inj":[7,12],"soak":[2,10],"cutoff":[40,120]},
+                            "oil_lift":0.084,"sor":[3.6,3.1],"inr_per_cycle":420000,"joint_share":160000,
+                            "p10_p90":{"inr_per_cycle":[…,…]},"model":"O2"}
+POST /api/wells/{id}/apply          {"spm","kd"} → {"applied":true,"audit_id":"…","at":"…"}
+POST /api/wells/{id}/plan/schedule  {"steam","p_inj","soak","cutoff"} → {"scheduled":true,"cycle":5,"audit_id":"…"}
+WS   /api/wells/{id}/live  every 250 ms: {"t","theta","rod_pos","load","amps","hz","spm_actual","thp","chp","anomaly_score","anomaly_label"}
+                           (client may send {"spm","kd","day"} to retarget the stream)
+```
+
 Contract tests (pytest + schemathesis-style) freeze these shapes; the frontend client is typed against the
 same JSON Schema (exported from pydantic to `backend/openapi.json`).
 
