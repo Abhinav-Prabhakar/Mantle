@@ -1,0 +1,1 @@
+{"version": "1.0.0", "source": "physics_synthetic", "trained_at": "2026-09-30T08:32:20+00:00", "timesteps": 160000, "data_hash": "48609fa6a4f7342c", "train_wells": 48, "test_wells": ["BGW-17", "BGW-28", "BGW-21", "BGW-09", "BGW-43", "BGW-35", "BGW-52", "BGW-05", "BGW-53", "BGW-58", "BGW-11", "BGW-03"]}

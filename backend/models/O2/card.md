@@ -1,0 +1,8 @@
+# O2 CSS planner
+Optuna TPE over steam t, injection pressure, soak d and cut-off d with the O1 pump optimum nested (joint) versus steam-first-then-pump (sequential). **Source: physics_synthetic**
+(M1/M2 surrogates trained on S2; O1 physics twin). No weights: `train` runs the planner on 60 wells (budget 4 s each), verifies each plan against the
+noiseless S2 generating process (`*_twin_verified`) and caches the plans in `plans.json`.
+- Metrics: {"n_wells": 60, "seconds_max": 2.487375000026077, "seconds_mean": 1.8122520895674825, "joint_ge_sequential_all": true, "ranges_valid_all": true, "coupling_dividend_inr_mean_surrogate": 720665.815046776, "gain_vs_practice_inr_mean_surrogate": 4606131.43728279, "oil_lift_mean_surrogate": -0.11418884607465837, "sor_practice_mean": 5.570921848514242, "sor_mantle_mean": 4.700250278859883, "gain_vs_practice_inr_mean_twin_verified": 321417.37539469544, "share_wells_twin_gain_positive": 0.8833333333333333, "coupling_dividend_inr_mean_twin_verified": 887325.5505084778, "oil_lift_mean_twin_verified": -0.07351718710684334}
+- Coupling dividend = value(joint) - value(sequential) (INR/cycle); the joint study is seeded with the sequential plan so joint >= sequential. Output shape matches the UI PLAN fixture (`to_ui`).
+- Practice baseline is the fixture (800 t, 9 MPa, 4 d, 120 d at 5.4 SPM). P10-P90 come from M2's conformal cycle interval applied to the mantle plan only.
+- Limits: injection pressure is a modelling assumption (no pressure physics in the twin); the surrogate-optimal plan is checked against the twin, not against field results; cut-off is on the twin's day axis.

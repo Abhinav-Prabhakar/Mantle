@@ -195,6 +195,48 @@
       "trained_at": "2026-09-30T07:51:53+00:00",
       "version": "1.0.0"
     },
+    "M6": {
+      "data_hash": "da81ee1f0dce0bc7",
+      "id": "M6",
+      "metrics": {
+        "f1_3w_3sigma": 0.68523,
+        "f1_3w_ae": 0.723404,
+        "f1_3w_ens": 0.720207,
+        "f1_3w_ens_real_only": 0.666667,
+        "f1_3w_if": 0.702413,
+        "f1_3w_z": 0.625899,
+        "f1_s3_3sigma": 0.235294,
+        "f1_s3_ae": 0.518057,
+        "f1_s3_deployed": 0.628319,
+        "f1_s3_ens": 0.53,
+        "f1_s3_ens_pretrained_only": 0.360563,
+        "f1_s3_if": 0.628319,
+        "f1_s3_z": 0.312169,
+        "n_3w_test_events": 94,
+        "n_3w_test_streams": 112,
+        "n_s3_test_wells": 6,
+        "primary": {
+          "baseline": 0.68523,
+          "baseline_name": "3-sigma",
+          "direction": "higher",
+          "name": "event_f1_3w_test",
+          "secondary": {
+            "baseline": 0.235294,
+            "name": "event_f1_s3_test",
+            "value": 0.628319
+          },
+          "target": 0.8,
+          "value": 0.720207
+        },
+        "type_accuracy_on_event_steps": 0.723666
+      },
+      "quick": false,
+      "size_bytes": 1024582,
+      "source": "real (3W pre-train/validation) + physics_synthetic (S3 fine-tune)",
+      "train_seconds": 153.77,
+      "trained_at": "2026-09-30T08:34:59+00:00",
+      "version": "1.0.0"
+    },
     "O1": {
       "data_hash": "aef049e746e89862",
       "id": "O1",
@@ -229,6 +271,90 @@
       "source": "physics_synthetic",
       "train_seconds": 3.96,
       "trained_at": "2026-09-30T08:19:28+00:00",
+      "version": "1.0.0"
+    },
+    "O2": {
+      "data_hash": "71d0bef2f1a4e6c9",
+      "id": "O2",
+      "metrics": {
+        "coupling_dividend_inr_mean_surrogate": 720665.815047,
+        "coupling_dividend_inr_mean_twin_verified": 887325.550508,
+        "gain_vs_practice_inr_mean_surrogate": 4606131.437283,
+        "gain_vs_practice_inr_mean_twin_verified": 321417.375395,
+        "joint_ge_sequential_all": true,
+        "n_wells": 60,
+        "oil_lift_mean_surrogate": -0.114189,
+        "oil_lift_mean_twin_verified": -0.073517,
+        "primary": {
+          "baseline": 0.0,
+          "baseline_name": "practice (L13)",
+          "direction": "higher",
+          "name": "gain_vs_practice_inr_per_cycle_twin_verified",
+          "target": 0.0,
+          "target_text": "> 0 (no numeric target in spec)",
+          "value": 321417.375395
+        },
+        "ranges_valid_all": true,
+        "seconds_max": 2.487375,
+        "seconds_mean": 1.812252,
+        "share_wells_twin_gain_positive": 0.883333,
+        "sor_mantle_mean": 4.70025,
+        "sor_practice_mean": 5.570922
+      },
+      "quick": false,
+      "size_bytes": 60139,
+      "source": "physics_synthetic",
+      "train_seconds": 110.14,
+      "trained_at": "2026-09-30T08:31:28+00:00",
+      "version": "1.0.0"
+    },
+    "O3": {
+      "data_hash": "48609fa6a4f7342c",
+      "id": "O3",
+      "metrics": {
+        "eval_wells": 12,
+        "o1_o2_feasible": 0.0,
+        "o1_o2_impacts": 1451.092235,
+        "o1_o2_net": 11136014.403152,
+        "o1_o2_oil": 2171.144915,
+        "o1_o2_risk": 62473.680077,
+        "o1_only_feasible": 0.0,
+        "o1_only_impacts": 1487.079376,
+        "o1_only_net": 11371257.497565,
+        "o1_only_oil": 2296.157565,
+        "o1_only_risk": 57828.941501,
+        "ppo_feasible": 0.0,
+        "ppo_impacts": 3102.710302,
+        "ppo_net": 11395731.16929,
+        "ppo_oil": 2359.500362,
+        "ppo_risk": 119434.985529,
+        "ppo_vs_o1_o2_net_ratio": 1.038462,
+        "primary": {
+          "baseline": 4383526.109317,
+          "baseline_name": "static practice",
+          "direction": "higher",
+          "name": "ppo_net_inr_per_cycle",
+          "secondary": {
+            "name": "o1_o2_net_inr_per_cycle",
+            "value": 11136014.403152
+          },
+          "target": null,
+          "target_text": "shown vs O1+O2 (no target)",
+          "value": 11395731.16929
+        },
+        "static_feasible": 0.0,
+        "static_impacts": 7528.993441,
+        "static_net": 4383526.109317,
+        "static_oil": 2307.057188,
+        "static_risk": 6599484.44254,
+        "timesteps": 160000,
+        "train_seconds_ppo": 43.785967
+      },
+      "quick": false,
+      "size_bytes": 163274,
+      "source": "physics_synthetic",
+      "train_seconds": 47.32,
+      "trained_at": "2026-09-30T08:32:20+00:00",
       "version": "1.0.0"
     }
   }

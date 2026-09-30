@@ -63,3 +63,9 @@ def test_shipped_m3_m5(shipped):
     assert a["metrics"]["macro_f1_cnn"] > a["metrics"]["macro_f1_fourier_knn"]
     assert a["metrics"]["macro_f1_cnn"] >= 0.85
     assert b["primary"]["value"] <= 4.0 and b["primary"]["value"] < b["primary"]["baseline"]
+
+
+@pytest.mark.xfail(reason="M3 macro-F1 0.94 < 0.95 (normal/tubing-leak/friction overlap); perturbed 0.85 < 0.9: documented misses", strict=False)
+def test_shipped_m3_targets(shipped):
+    m = shipped("M3")["metrics"]
+    assert m["macro_f1_cnn"] >= 0.95 and m["macro_f1_perturbed_cnn"] >= 0.90

@@ -9,8 +9,11 @@ from mantle_ml.models import m6_anomaly as m6
 def test_runs_and_events():
     f = np.array([0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0], dtype=bool)
     assert m6.runs(f) == [(1, 3), (6, 6), (8, 11)]
-    pred = m6.predicted_events(np.array([0, 5, 5, 5, 0, 0, 0, 0, 5, 5, 5, 5, 0.0]), 1.0)
-    assert pred == [(1, 3), (8, 11)]
+    sc = np.zeros(30)
+    sc[1:4], sc[15:19] = 5, 5
+    assert m6.predicted_events(sc, 1.0) == [(1, 3), (15, 18)]
+    sc[6:9] = 5                                  # within the merge gap of the first run
+    assert m6.predicted_events(sc, 1.0)[0] == (1, 8)
     tp, fp, fn = m6.event_counts([(1, 3), (20, 25)], [(2, 4), (40, 50)])
     assert (tp, fp, fn) == (1, 1, 1)
     assert m6.f1_from(1, 1, 1) == pytest.approx(0.5)
@@ -49,3 +52,8 @@ def test_shipped_m6(shipped):
     assert m["f1_s3_ens"] >= m["f1_s3_3sigma"]
     if m.get("f1_3w_ens") is not None:
         assert m["f1_3w_ens"] > m["f1_3w_3sigma"]
+
+
+@pytest.mark.xfail(reason="3W event F1 0.74 < 0.8 target: many 3W faults are slow/subtle; documented miss", strict=False)
+def test_shipped_m6_target(shipped):
+    assert shipped("M6")["metrics"]["f1_3w_ens"] >= 0.8

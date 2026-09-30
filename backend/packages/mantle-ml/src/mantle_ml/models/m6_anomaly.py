@@ -415,7 +415,7 @@ class AnomalyDetector:
             w = windows(z)
             m = mask[L - 1:]
             d = self.scorer.score(w, m)
-            score[L - 1:] = d["ens"]
+            score[L - 1:] = d[self.meta.get("score_key", "ens")]
             feat = np.concatenate([d["err"], window_features(w, m)], axis=1)
             typ[L - 1:] = self.typer.predict(feat)
         flag = np.nan_to_num(score, nan=-1) > self.thr
@@ -472,9 +472,13 @@ def train(out_dir: Path, quick: bool = False) -> dict:
         scs = fit_scorer(net_ft, tr, len(CH_S3), cap, rng, trees)
         sv, st = evaluate_streams(scs, va, None), evaluate_streams(scs, te, None)
         thr = {k: best_threshold(va, sv, k) for k in ("ae", "if", "z", "ens")}
+        val_f1 = {k: event_f1_for(va, sv, k, thr[k])[0] for k in thr}
+        key = max(("ens", "ae", "if"), key=lambda k: val_f1[k])       # deployed scorer picked on the validation wells
         for k in ("ae", "if", "z", "ens"):
             met[f"f1_s3_{k}"] = event_f1_for(te, st, k, thr[k])[0]
         met["counts_s3_ens_tp_fp_fn"] = list(event_f1_for(te, st, "ens", thr["ens"])[1])
+        met["s3_deployed_score"] = key
+        met["f1_s3_deployed"] = event_f1_for(te, st, key, thr[key])[0]
         met["f1_s3_3sigma"] = event_f1_for(te, three_sigma_scores(te), "3sig", 3.0)[0]
         if s3w:                                  # pre-trained-only AE (no fine-tune) for comparison
             sc0 = fit_scorer(net, tr, len(CH_S3), cap, rng, trees)
@@ -507,13 +511,13 @@ def train(out_dir: Path, quick: bool = False) -> dict:
     joblib.dump({"iforest": scs.iforest, "qa": scs.qa, "qi": scs.qi, "qz": scs.qz}, d / "scorer_s3.joblib", compress=3)
     joblib.dump(typer, d / "typer_s3.joblib", compress=3)
     meta = {"version": "1.0.0" + ("-quick" if quick else ""), "source": "real+physics_synthetic", "hidden": hid,
-            "thr_s3": thr["ens"], "channels_s3": CH_S3, "channels_3w": CH_3W, "window": L,
+            "thr_s3": thr[key], "score_key": key, "channels_s3": CH_S3, "channels_3w": CH_3W, "window": L,
             "trained_at": common.now_iso(), "data_hash": common.data_hash([str(len(s3w)), str(len(s3)), str(cap)])}
     (d / "meta.json").write_text(json.dumps(meta))
     f13 = met.get("f1_3w_ens")
     ev = {"metrics": met, "primary": {"name": "event_f1_3w_test", "value": f13, "target": 0.8,
                                      "baseline_name": "3-sigma", "baseline": met.get("f1_3w_3sigma"), "direction": "higher",
-                                     "secondary": {"name": "event_f1_s3_test", "value": met["f1_s3_ens"], "baseline": met["f1_s3_3sigma"]}},
+                                     "secondary": {"name": "event_f1_s3_test", "value": met["f1_s3_deployed"], "baseline": met["f1_s3_3sigma"]}},
           "notes": notes, "train_seconds": tm["seconds"], "source": "real (3W pre-train/validation) + physics_synthetic (S3 fine-tune)",
           "version": meta["version"], "data_hash": meta["data_hash"], "quick": quick}
     card = f"""# M6 streaming anomaly detector

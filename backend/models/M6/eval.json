@@ -1,0 +1,61 @@
+{
+  "model": "M6",
+  "metrics": {
+    "f1_3w_ae": 0.723404,
+    "f1_3w_if": 0.702413,
+    "f1_3w_z": 0.625899,
+    "f1_3w_ens": 0.720207,
+    "counts_3w_ens_tp_fp_fn": [
+      139,
+      82,
+      26
+    ],
+    "f1_3w_ens_real_only": 0.666667,
+    "f1_3w_3sigma": 0.68523,
+    "n_3w_test_streams": 112,
+    "n_3w_test_events": 94,
+    "f1_s3_ae": 0.518057,
+    "f1_s3_if": 0.628319,
+    "f1_s3_z": 0.312169,
+    "f1_s3_ens": 0.53,
+    "counts_s3_ens_tp_fp_fn": [
+      159,
+      192,
+      90
+    ],
+    "s3_deployed_score": "if",
+    "f1_s3_deployed": 0.628319,
+    "f1_s3_3sigma": 0.235294,
+    "f1_s3_ens_pretrained_only": 0.360563,
+    "n_s3_test_wells": 6,
+    "type_accuracy_on_event_steps": 0.723666,
+    "type_classes_seen": [
+      "normal",
+      "pump_off",
+      "gas_lock",
+      "load_cell_fault",
+      "tubing_leak_onset",
+      "vfd_trip"
+    ]
+  },
+  "primary": {
+    "name": "event_f1_3w_test",
+    "value": 0.720207,
+    "target": 0.8,
+    "baseline_name": "3-sigma",
+    "baseline": 0.68523,
+    "direction": "higher",
+    "secondary": {
+      "name": "event_f1_s3_test",
+      "value": 0.628319,
+      "baseline": 0.235294
+    }
+  },
+  "notes": [],
+  "train_seconds": 153.77,
+  "source": "real (3W pre-train/validation) + physics_synthetic (S3 fine-tune)",
+  "version": "1.0.0",
+  "data_hash": "da81ee1f0dce0bc7",
+  "quick": false,
+  "trained_at": "2026-09-30T08:34:59+00:00"
+}
