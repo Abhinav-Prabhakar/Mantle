@@ -87,7 +87,13 @@ def _sample_params(rng: np.random.Generator, well: dict, n: int) -> dict:
     spm = float(rng.uniform(4.0, 7.2))
     kd = float(rng.choice([0.46, 0.5, 0.54, 0.58, 0.62]))
     soak = float(rng.integers(3, 11))
-    run = cycle_run(steam, spm, kd, steam_eff=well["steam_eff"], soak_days=soak)
+    run = cycle_run(steam, spm, kd, steam_eff=well["steam_eff"], oil_scale=well["pi_factor"], soak_days=soak)
+    if rng.random() < 0.6:      # a well-managed cycle: the operator matches pump speed to inflow
+        for _ in range(3):
+            fill = run.fill[SOAK_END + 5: SOAK_END + 60].mean()
+            spm = float(np.clip(spm * (fill / 0.88) ** 1.6, 1.6, 7.2))
+            run = cycle_run(steam, spm, kd, steam_eff=well["steam_eff"], oil_scale=well["pi_factor"],
+                            soak_days=soak)
     cutoff = int(np.clip(best_cutoff(run, steam) + rng.normal(0, 10), 60, CYCLE_DAYS))
     oil_scale = well["pi_factor"] * well["decline_rate"] ** (n - 1) * float(np.exp(rng.normal(0, 0.06)))
     return {

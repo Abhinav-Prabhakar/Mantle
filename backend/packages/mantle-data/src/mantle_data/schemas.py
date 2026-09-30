@@ -53,6 +53,7 @@ class Well(Record):  # S1
     walther_A: float
     walther_B: float
     corrosion_index: float = Field(ge=0, le=1)
+    rod_stress_factor: float = Field(gt=0)  # pin wear / side-load / pitting multiplier on Goodman ratio
     is_showcase: bool = False
 
 
@@ -171,29 +172,31 @@ class Workover(Record):
     cost_inr: float = Field(ge=0)
 
 
-class OptimiserTrace(Record):  # S6
+class OptimiserTrace(Record):  # S6: one CSS cycle decision, (state, action) -> outcome
     trace_id: int
-    well_id: str | None = None
-    cycle_day: float
-    state_steam_t: float
-    state_spm: float
-    state_kd: float
-    state_viscosity_cp: float
-    state_sandface_t_c: float
-    state_fillage: float
-    state_float_margin: float
-    action_spm: float
-    action_kd: float
+    well_id: str
+    cycle_no: int
+    state_pi_factor: float
+    state_visc_factor: float
+    state_steam_eff: float
+    state_decline: float
+    state_prev_cum_oil_bbl: float
+    state_oil_price_inr: float
+    state_steam_cost_inr_per_t: float
     action_steam_t: float
     action_soak_d: float
     action_cutoff_d: float
-    outcome_oil_bpd: float
-    outcome_kw: float
-    outcome_float_margin: float
-    outcome_goodman: float
-    outcome_net_inr_per_day: float
-    outcome_cycle_net_inr: float
+    action_spm: float
+    action_kd: float
+    outcome_cum_oil_bbl: float
     outcome_sor: float
+    outcome_net_inr: float
+    outcome_peak_sandface_t_c: float
+    outcome_min_float_margin: float
+    outcome_max_goodman: float
+    outcome_mean_fillage: float
+    outcome_kwh_per_bbl: float
+    outcome_impacts_per_day: float
 
 
 class Weather(Record):  # R2
@@ -212,6 +215,7 @@ class ViscosityLit(Record):  # R3
     density_g_cc: float | None = None
     citation: str
     licence: str
+    data_kind: Literal["measurement", "column_statistic"] = "measurement"
 
 
 class ThreeWEvent(Record):  # R1 index

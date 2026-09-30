@@ -34,7 +34,7 @@ def showcase_row() -> dict:
         "tubing_od_in": 2.875, "rod_taper": TAPERS[0], "pump_bore_in": 1.25, "pump_depth_m": float(PUMP_DEPTH),
         "unit_class": UNITS[1], "stroke_m": float(S_M), "vfd_kw": 22.0,
         "pi_factor": 1.0, "visc_factor": 1.0, "decline_rate": 0.9, "steam_eff": 1.0,
-        "walther_A": WAL_A, "walther_B": WAL_B, "corrosion_index": 0.35,
+        "walther_A": WAL_A, "walther_B": WAL_B, "corrosion_index": 0.35, "rod_stress_factor": 1.2,
         "is_showcase": True, "source": SOURCE,
     }
 
@@ -67,7 +67,8 @@ def generate(scale: str | Scale = "default", seed: int = SEED) -> pd.DataFrame:
             "stroke_m": float(S_M), "vfd_kw": float(rng.choice([18.5, 22.0, 30.0, 37.0])),
             "pi_factor": pi, "visc_factor": visc_f, "decline_rate": float(rng.uniform(0.85, 0.94)),
             "steam_eff": float(rng.uniform(0.88, 1.10)), "walther_A": _walther_A(visc_f), "walther_B": WAL_B,
-            "corrosion_index": float(rng.uniform(0.1, 0.8)), "is_showcase": False, "source": SOURCE,
+            "corrosion_index": float(rng.uniform(0.1, 0.8)),
+            "rod_stress_factor": float(np.clip(rng.normal(1.34, 0.09), 1.15, 1.6)), "is_showcase": False, "source": SOURCE,
         }
         row["perf_bot_m"] = min(row["perf_bot_m"], row["depth_m"] - 5)
         if wid == SHOWCASE_ID:
