@@ -127,13 +127,13 @@ def _import_spec(spec_id: str, entries: list[tuple[str, dict]], root: Path) -> d
         if iid in seen:
             rep["duplicates"].append({"item_id": iid, "reason": "item_id repeated in replies", "file": fname})
             continue
-        seen.add(iid)
         body = {k: v for k, v in obj.items() if k != "item_id"}
         try:
             rec = validate_record(spec, body)
         except (ValidationError, ValueError) as e:
             rep["rejected"].append({"item_id": iid, "reason": _reason(e), "file": fname})
             continue
+        seen.add(iid)
         if not dd.add(record_text(rec)):
             rep["duplicates"].append({"item_id": iid, "reason": "near-duplicate of an existing record", "file": fname})
             continue
@@ -151,9 +151,11 @@ def _import_spec(spec_id: str, entries: list[tuple[str, dict]], root: Path) -> d
             for r in rows:
                 f.write(json.dumps(r) + "\n")
     done = have | set(rep["accepted"])
+    rep["rejected"] = [r for r in rep["rejected"] if r["item_id"] not in done]      # fixed in a later reply
     dup_ids = {d["item_id"] for d in rep["duplicates"]}
     for m in by_id.values():
-        if m["batch"] in touched_batches and m["item_id"] not in seen and m["item_id"] not in done:
+        if (m["batch"] in touched_batches and m["item_id"] not in seen and m["item_id"] not in done
+                and m["item_id"] not in {r["item_id"] for r in rep["rejected"]}):
             rep["missing"].append(m["item_id"])
     st = read_status(pdir)
     for iid in done | dup_ids:
