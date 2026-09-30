@@ -292,6 +292,17 @@ nextjs-port.md             brief for the planned Next.js port
 - **Working now:** three-view frontend on live backend data, ten models shipped, twin-verified planner, live stream with anomaly detection, Docker one-command run, 195 passing tests.
 - **Open misses:** M3 F1 (0.939 vs 0.95), M4 unseat C-index (0.68 vs 0.75), M6 3W event F1 (0.72 vs 0.80). Documented in the model cards, tracked as xfail tests.
 - **Planned:** Next.js + TypeScript port of the frontend (spec in `nextjs-port.md`), then a performance pass; fine-tune on real Baghewala data when Oil India can share it, which is the honest path from twin-validated to field-validated.
+- **Future scope (features):**
+  - *Fault injection for demos:* trigger a gas lock, pump-off or load-cell fault from the UI (the live stream already supports injection) and watch the detector catch it.
+  - *Closed-loop verification:* after Apply, ghost the old dyno card and show measured impacts falling over a verification window.
+  - *"Why?" explanations:* top drivers behind each risk and recommendation.
+  - *Alert → component:* click an alert to fly to the affected part in inspect mode.
+  - *Uncertainty in the UI:* surface the P10–P90 ranges the API already returns (MTBF, plan dividend).
+  - *Field-units toggle:* SI ↔ oilfield units (bbl, psi, ft).
+  - *Fleet switcher:* rank all 60 wells by ₹/day upside and switch in place.
+  - *Shareable deep links:* scenario, view and camera encoded in the URL.
+  - *Guided tour:* a 90-second scripted walkthrough of every problem-statement requirement.
+  - *Pump audio:* a per-stroke thump that turns harsh on fluid pound.
 - **Known limits:** Baghewala data is not public, so the twin is calibrated to published field ranges; all wells are simulated; licence still to be decided.
 
 ---
