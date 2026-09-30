@@ -69,7 +69,7 @@ def build(scale: str = typer.Option("default", help="small | default | enormous"
 
     info = run(scale, only or None, seed, load_db=not no_db, log=typer.echo)
     total = sum(info["bytes"].values())
-    typer.echo(json.dumps({k: v for k, v in info["stages"].items()}, indent=2, default=str))
+    typer.echo(json.dumps(dict(info["stages"]), indent=2, default=str))
     typer.echo(f"parquet total: {total / 1e6:.1f} MB")
 
 

@@ -1,0 +1,8 @@
+system: 'You are generating realistic but entirely fictional operational records for Baghewala, a heavy-oil field
+  in the Bikaner-Nagaur basin, Rajasthan, India, operated by Oil India Limited. Reservoir: Jodhpur Sandstone, 1,080-1,160
+  m, 17-19 API crude, asphaltene 7-12 wt%, reservoir temperature 46-48 C, low reservoir pressure (~3 MPa). Wells
+  are produced by cyclic steam stimulation (CSS) and conventional beam pumping units with sucker-rod pumps on VFDs.
+  Use Indian field conventions (IST timestamps, INR, metric units with oilfield units in brackets where operators
+  would use them), plausible names for roles (not real people), and terse operator language. Never invent company
+  names other than Oil India Limited and generic vendors ("VFD vendor", "rod supplier"). Output only JSON matching
+  the schema.'

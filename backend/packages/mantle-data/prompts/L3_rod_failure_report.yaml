@@ -1,0 +1,52 @@
+id: L3
+name: rod_failure_report
+suggested_n: 6000
+records_per_call: 1
+est_output_tokens: 520
+sampled_from:
+- S1
+- S5
+variables:
+- well_id
+- date
+- component
+- depth
+- mode
+- float
+- goodman
+- impacts
+- corr
+user_template: 'Write a rod-string failure report for {well_id} on {date}: failed component {component} at {depth}
+  m, failure mode {mode}, visual inspection notes, suspected root cause (consistent with float margin {float}, Goodman
+  {goodman}, impacts/day {impacts}, corrosion index {corr}), rods replaced, downtime hours, cost INR, recommendations.'
+fields:
+- name: well_id
+  type: str
+- name: date
+  type: str
+- name: failed_component
+  type: str
+- name: depth_m
+  type: float
+  min: 0
+  max: 1300
+- name: failure_mode
+  type: str
+- name: inspection_notes
+  type: str
+- name: root_cause
+  type: str
+- name: rods_replaced
+  type: int
+  min: 0
+  max: 60
+- name: downtime_hours
+  type: float
+  min: 0
+  max: 400
+- name: cost_inr
+  type: float
+  min: 0
+- name: recommendations
+  type: list[str]
+  min_items: 1

@@ -1,0 +1,72 @@
+id: L9
+name: lab_fluid_report
+suggested_n: 1200
+records_per_call: 1
+est_output_tokens: 360
+sampled_from:
+- S1
+variables:
+- well_id
+- date
+- A
+- B
+user_template: 'Write a lab report for a crude sample from {well_id} taken {date}: API at 15.6 C, asphaltene/resin/saturate/aromatic
+  %, wax appearance temperature, viscosity at 50/80/120/160 C consistent with Walther parameters {A},{B}, water
+  cut, BS&W, emulsion notes.'
+fields:
+- name: well_id
+  type: str
+- name: sample_date
+  type: str
+- name: api_15_6c
+  type: float
+  min: 10
+  max: 25
+- name: asphaltene_pct
+  type: float
+  min: 0
+  max: 30
+- name: resin_pct
+  type: float
+  min: 0
+  max: 50
+- name: saturate_pct
+  type: float
+  min: 0
+  max: 80
+- name: aromatic_pct
+  type: float
+  min: 0
+  max: 80
+- name: wax_appearance_temp_c
+  type: float
+  min: 0
+  max: 80
+- name: viscosity_50c_cp
+  type: float
+  min: 0.3
+- name: viscosity_80c_cp
+  type: float
+  min: 0.3
+- name: viscosity_120c_cp
+  type: float
+  min: 0.3
+- name: viscosity_160c_cp
+  type: float
+  min: 0.3
+- name: water_cut_pct
+  type: float
+  min: 0
+  max: 100
+- name: bsw_pct
+  type: float
+  min: 0
+  max: 100
+- name: emulsion_notes
+  type: str
+checks:
+  monotone_desc:
+  - - viscosity_50c_cp
+    - viscosity_80c_cp
+    - viscosity_120c_cp
+    - viscosity_160c_cp

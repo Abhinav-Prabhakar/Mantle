@@ -35,7 +35,6 @@ def augment(pos: np.ndarray, load: np.ndarray, aug: np.ndarray, rng: np.random.G
     n = pos.shape[1]
     ptp = np.ptp(load, axis=1)
     sp = np.ptp(pos, axis=1)
-    B = len(pos)
     noisy = np.isin(aug, [1, 6])
     if noisy.any():
         load[noisy] += rng.standard_normal((noisy.sum(), n)) * (0.015 * ptp[noisy])[:, None]

@@ -1,0 +1,41 @@
+id: L4
+name: pump_unseat_incident
+suggested_n: 2500
+records_per_call: 1
+est_output_tokens: 380
+sampled_from:
+- S1
+- S5
+variables:
+- well_id
+- date
+- day
+- mu
+user_template: 'Write a pump-unseating incident note for {well_id} on {date} at cycle day {day}: symptoms seen on
+  the dyno card and in production, crude viscosity at the time {mu} cP, hold-down type, actions taken (rod pull,
+  reseat, hold-down change), time lost, and a one-line lesson.'
+fields:
+- name: well_id
+  type: str
+- name: date
+  type: str
+- name: cycle_day
+  type: int
+  min: 0
+  max: 140
+- name: symptoms
+  type: str
+- name: viscosity_cp
+  type: float
+  min: 0.3
+- name: hold_down_type
+  type: str
+- name: actions_taken
+  type: list[str]
+  min_items: 1
+- name: time_lost_hours
+  type: float
+  min: 0
+  max: 300
+- name: lesson
+  type: str

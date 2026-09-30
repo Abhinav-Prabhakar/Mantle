@@ -50,7 +50,8 @@ class CycleRun:
 
 def cycle_run(steam: float, spm: float, kd: float, *, steam_eff: float = 1.0, oil_scale: float = 1.0,
               visc_factor: float = 1.0, soak_days: float = BASE_SOAK_DAYS) -> CycleRun:
-    eff_steam = float(np.clip(steam * steam_eff, 300, 1400))
+    # integer steam: mantle_physics caches per-integer steam, so rounding keeps results order-independent
+    eff_steam = float(np.clip(round(steam * steam_eff), 300, 1400))
     pb = base_arr(eff_steam)
     kt = kd_table(kd)
     n = CYCLE_DAYS + 1

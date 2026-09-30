@@ -101,7 +101,7 @@ def generate_well(well: dict, days: int, seed: int = SEED, hz: float = 1.0, stea
     d0 = float(start_day if start_day is not None else rng.uniform(22, max(23.0, 118 - days)))
     d0 = min(d0, 119.0 - days) if days < 96 else 22.0
     base_spm = float(rng.uniform(4.2, 6.8))
-    eff_steam = float(np.clip(steam * well.get("steam_eff", 1.0), 300, 1400))
+    eff_steam = float(np.clip(round(steam * well.get("steam_eff", 1.0)), 300, 1400))
 
     load = np.empty(n)
     pos = np.empty(n)
