@@ -54,6 +54,9 @@ class Well(Record):  # S1
     walther_B: float
     corrosion_index: float = Field(ge=0, le=1)
     rod_stress_factor: float = Field(gt=0)  # pin wear / side-load / pitting multiplier on Goodman ratio
+    gearbox_rating_inlb: float = Field(gt=0)  # from the API 11E unit designation
+    hold_down_kn: float = Field(gt=0)         # pump hold-down capacity
+    rod_sections: str                         # JSON [{"label", "to"}]: rod sizes and the depth (m) each runs to
     is_showcase: bool = False
 
 

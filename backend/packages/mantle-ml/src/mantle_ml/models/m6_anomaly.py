@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import warnings
 from pathlib import Path
+from typing import Any
 
 import joblib
 import lightgbm as lgb
@@ -94,11 +95,41 @@ def build_ae(hidden: int = 16):
     return AE()
 
 
-def ae_errors(net, w: np.ndarray, bs: int = 8192) -> np.ndarray:
-    """w (N,C,L) -> per-channel reconstruction MSE (N,C)."""
+class OnnxAE:
+    """The LSTM autoencoder served with onnxruntime (the API process never imports torch)."""
+
+    def __init__(self, path: Path):
+        import onnxruntime as ort
+
+        so = ort.SessionOptions()
+        so.intra_op_num_threads = 1
+        self.sess = ort.InferenceSession(str(path), so, providers=["CPUExecutionProvider"])
+
+    def errors(self, flat: np.ndarray, bs: int = 8192) -> np.ndarray:
+        out = np.empty(len(flat), dtype=np.float32)
+        for i in range(0, len(flat), bs):
+            x = np.ascontiguousarray(flat[i: i + bs], dtype=np.float32)
+            out[i: i + bs] = ((self.sess.run(None, {"x": x})[0] - x) ** 2).mean(1)
+        return out
+
+
+def export_onnx(net, path: Path) -> Path:
+    """Export the AE (input ``x`` (B, L), dynamic batch) so serving does not need torch."""
     import torch
 
+    net.eval()
+    torch.onnx.export(net, (torch.zeros(4, L),), str(path), input_names=["x"], output_names=["y"],
+                      dynamic_axes={"x": {0: "batch"}, "y": {0: "batch"}}, dynamo=False)
+    return Path(path)
+
+
+def ae_errors(net, w: np.ndarray, bs: int = 8192) -> np.ndarray:
+    """w (N,C,L) -> per-channel reconstruction MSE (N,C)."""
     N, C, _ = w.shape
+    if isinstance(net, OnnxAE):
+        return net.errors(w.reshape(N * C, L), bs).reshape(N, C)
+    import torch
+
     flat = torch.from_numpy(w.reshape(N * C, L))
     out = np.empty(N * C, dtype=np.float32)
     net.eval()
@@ -394,13 +425,16 @@ class AnomalyDetector:
 
     @classmethod
     def load(cls, d: Path) -> AnomalyDetector:
-        import torch
-
         d = Path(d)
         meta = json.loads((d / "meta.json").read_text())
-        net = build_ae(meta["hidden"])
-        net.load_state_dict(torch.load(d / "ae_s3.pt"))
-        net.eval()
+        if (d / "ae_s3.onnx").exists():                 # serving path: no torch
+            net: Any = OnnxAE(d / "ae_s3.onnx")
+        else:
+            import torch
+
+            net = build_ae(meta["hidden"])
+            net.load_state_dict(torch.load(d / "ae_s3.pt"))
+            net.eval()
         z = joblib.load(d / "scorer_s3.joblib")
         sc = Scorer(net, z["iforest"], z["qa"], z["qi"], z["qz"], len(CH_S3))
         return cls(sc, meta["thr_s3"], joblib.load(d / "typer_s3.joblib"), meta)
@@ -508,6 +542,7 @@ def train(out_dir: Path, quick: bool = False) -> dict:
         met["type_classes_seen"] = [S3_LABELS[i] for i in cls_]
     d = common.model_dir(ID, out_dir)
     torch.save(net_ft.state_dict(), d / "ae_s3.pt")
+    export_onnx(net_ft, d / "ae_s3.onnx")
     joblib.dump({"iforest": scs.iforest, "qa": scs.qa, "qi": scs.qi, "qz": scs.qz}, d / "scorer_s3.joblib", compress=3)
     joblib.dump(typer, d / "typer_s3.joblib", compress=3)
     meta = {"version": "1.0.0" + ("-quick" if quick else ""), "source": "real+physics_synthetic", "hidden": hid,

@@ -8,7 +8,7 @@ import numpy as np
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from mantle_physics import CYCLE, WellSim, derive, rig, viscosity_cp
+from mantle_physics import CYCLE, WellContext, WellSim, derive, rig, viscosity_cp
 from mantle_physics.constants import PRICE, SOAK_END
 from mantle_physics.rods import kd_table
 
@@ -220,16 +220,19 @@ def test_kd_table_shapes_speed():
 
 def test_derive_fields():
     sim = WellSim()
-    d = derive(sim.metrics(), sim.state)
-    expected = {
-        "hz", "amps", "ampsAvg", "profile", "stroke", "thp", "chp", "pip", "flowT", "pRes", "counterbalance",
-        "beamLoad", "impactsDay", "impactsMantle", "impactVel", "uplift", "upliftMargin", "unseatRisk", "cost", "recovery",
-    }
-    assert set(d) == expected
-    assert set(d["cost"]) == {"steamDay", "powerDay", "maintDay", "chemDay", "costDay", "costBbl"}
+    phys = {"hz", "amps", "ampsAvg", "profile", "stroke", "thp", "chp", "pip", "flowT", "counterbalance",
+            "beamLoad", "impactsDay", "impactsMantle", "impactVel"}
+    assert set(derive(sim.metrics(), sim.state)) == phys                      # no context: physical keys only
+    ctx = WellContext(p_res_mpa=3.1, hold_down_kn=26.0, steam_inr_per_t=2800.0, power_inr_per_kwh=8.0,
+                      oil_inr_per_bbl=6000.0, maint_inr_per_day=10000.0, chem_inr_per_day=2000.0,
+                      past_cum_oil_bbl=10000.0, ooip_bbl=1.2e6)
+    d = derive(sim.metrics(), sim.state, ctx)
+    assert set(d) == phys | {"pRes", "uplift", "upliftMargin", "unseatRisk", "cost", "recovery"}
+    assert set(d["cost"]) == {"steamDay", "powerDay", "maintDay", "chemDay", "costDay", "costBbl", "revenueDay"}
+    assert d["cost"]["maintDay"] == 10000.0 and d["pRes"] == 3.1
     assert len(d["profile"]) == 36
     sim.set(cycle_day=5)
-    di = derive(sim.metrics(), None)
+    di = derive(sim.metrics(), None, ctx)
     assert di["thp"] == 9.4 and di["flowT"] == 285 and di["cost"]["costBbl"] is None
     sim.set(cycle_day=16)
     assert derive(sim.metrics(), None)["chp"] == 1.9

@@ -14,7 +14,7 @@ from .wellmodel import BASE_SOAK_DAYS, CycleRun, best_cutoff, cycle_run
 
 AS_OF = date(2026, 9, 30)
 SHOWCASE_CYCLE_DAY = 41
-SHOWCASE_PAST_CUM = (3900.0, 3500.0, 3150.0)        # from the frontend fixtures (bbl per past cycle)
+SHOWCASE_PAST_CUM = (3900.0, 3500.0, 3150.0)        # showcase history (bbl per completed cycle), calibrated to the UI's default well
 DAILY_COLS = [
     "well_id", "cycle_no", "day", "date", "phase", "oil_bpd", "water_bpd", "liquid_bpd", "water_cut",
     "sandface_t_c", "viscosity_cp", "heated_radius_m", "spm_safe", "float_margin", "fillage", "goodman",
@@ -109,7 +109,7 @@ def _showcase(well: dict) -> tuple[list[dict], list[pd.DataFrame]]:
     cur = {"steam_t": 800, "spm": 5.4, "kd": 0.5, "soak_days": float(BASE_SOAK_DAYS), "cutoff_twin": 0,
            "p_inj": 9.0, "quality": 0.72, "oil_scale": 1.0}
     cur["cutoff_twin"] = best_cutoff(cycle_run(800, 5.4, 0.5), 800)
-    # past cycles: solve oil_scale to hit the frontend's cumulative-oil fixtures
+    # past cycles: solve oil_scale to hit the showcase cumulative-oil history
     ends = start - timedelta(days=21)
     plans = []
     for k, target in zip(range(3, 0, -1), SHOWCASE_PAST_CUM[::-1], strict=True):

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import math
+import zlib
 from datetime import date, timedelta
 from typing import Any
 
@@ -15,7 +17,37 @@ from mantle_physics.viscosity import WAL_A, WAL_B, viscosity_cp
 from .common import SEED, SHOWCASE_ID, SOURCE, Scale, get_scale, rng_for
 
 UNITS = ["C-160D-173-64", "C-228D-213-86", "C-320D-256-100", "C-456D-256-120"]
-TAPERS = ["1in/7/8in/3/4in + sinker", "7/8in/3/4in + sinker", "1in/7/8in/3/4in"]
+# rod-string designs: (label, cumulative fraction of the pump depth). The twin's own string (the showcase) is the
+# first one: 1-1/8" to 500 m, 1" to 800 m, 7/8" to the pump at 1068 m.
+TAPER_DESIGNS: dict[str, list[tuple[str, float]]] = {
+    "1-1/8in/1in/7/8in": [("1\u215b\u2033", 500 / 1068), ("1\u2033", 800 / 1068), ("\u215e\u2033", 1.0)],
+    "1in/7/8in/3/4in": [("1\u2033", 0.4), ("\u215e\u2033", 0.75), ("\u00be\u2033", 1.0)],
+    "7/8in/3/4in": [("\u215e\u2033", 0.6), ("\u00be\u2033", 1.0)],
+}
+TAPERS = list(TAPER_DESIGNS)
+
+
+def gearbox_rating_inlb(unit_class: str) -> float:
+    """API 11E designation ``C-<rating>D-<peak load>-<stroke>``: the rating is in thousands of in-lb."""
+    return float(int(unit_class.split("-")[1].rstrip("D")) * 1000)
+
+
+def hold_down_kn(well_id: str) -> float:
+    """Pump hold-down capacity (kN): a fixed per-well property (same law S5 used before it became a column)."""
+    return 26.0 * (0.85 + 0.3 * (zlib.crc32(well_id.encode()) % 100) / 100)
+
+
+def rod_sections(taper: str, pump_depth_m: float) -> str:
+    """JSON ``[{"label", "to"}]``: the rod sizes and the depth (m) each runs down to."""
+    return json.dumps([{"label": lab, "to": int(round(f * pump_depth_m))} for lab, f in TAPER_DESIGNS[taper]],
+                      ensure_ascii=False)
+
+
+def _derived_columns(row: dict) -> dict:
+    row["gearbox_rating_inlb"] = gearbox_rating_inlb(row["unit_class"])
+    row["hold_down_kn"] = hold_down_kn(row["well_id"])
+    row["rod_sections"] = rod_sections(row["rod_taper"], row["pump_depth_m"])
+    return row
 
 
 def _walther_A(visc_factor: float) -> float:
@@ -27,17 +59,17 @@ def _walther_A(visc_factor: float) -> float:
 
 
 def showcase_row() -> dict:
-    return {
+    return _derived_columns({
         "well_id": SHOWCASE_ID, "name": "Baghewala BGW-17", "spud_date": date(2024, 2, 14),
         "depth_m": 1165.0, "perf_top_m": 1100.0, "perf_bot_m": 1140.0, "net_pay_m": 40.0,
         "porosity": 0.27, "perm_md": 1800.0, "oil_saturation": 0.68, "api": 18.0,
         "asphaltene_wt_pct": 9.2, "t_res_c": 47.0, "p_res_mpa": 3.1, "casing_od_in": 7.0,
         "tubing_od_in": 2.875, "rod_taper": TAPERS[0], "pump_bore_in": 1.25, "pump_depth_m": float(PUMP_DEPTH),
-        "unit_class": UNITS[1], "stroke_m": float(S_M), "vfd_kw": 22.0,
+        "unit_class": UNITS[2], "stroke_m": float(S_M), "vfd_kw": 22.0,
         "pi_factor": 1.0, "visc_factor": 1.0, "decline_rate": 0.9, "steam_eff": 1.0,
         "walther_A": WAL_A, "walther_B": WAL_B, "corrosion_index": 0.35, "rod_stress_factor": 1.2,
         "is_showcase": True, "source": SOURCE,
-    }
+    })
 
 
 def generate(scale: str | Scale = "default", seed: int = SEED) -> pd.DataFrame:
@@ -72,6 +104,7 @@ def generate(scale: str | Scale = "default", seed: int = SEED) -> pd.DataFrame:
             "rod_stress_factor": float(np.clip(rng.normal(1.34, 0.09), 1.15, 1.6)), "is_showcase": False, "source": SOURCE,
         }
         row["perf_bot_m"] = min(row["perf_bot_m"], row["depth_m"] - 5)
+        _derived_columns(row)
         if wid == SHOWCASE_ID:
             row = showcase_row()
         rows.append(row)

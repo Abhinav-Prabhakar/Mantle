@@ -2,7 +2,7 @@
 
 from . import rig
 from .constants import CYCLE
-from .derived import derive
+from .derived import WellContext, derive
 from .dyno import (
     DYNO_CLASSES,
     CardBatch,
@@ -26,6 +26,6 @@ __all__ = [
     "CYCLE", "DYNO_CLASSES", "CardBatch", "Metrics", "RodString", "State", "WellSim", "card_features",
     "derive", "downhole_card", "pump_unseat_hazard", "pump_uplift_kn", "rig", "rod_damage_rate",
     "rod_hazard_rate", "simulate_rod_failures", "surface_card_from_downhole", "synthesize_cards",
-    "viscosity_cp",
+    "viscosity_cp", "WellContext",
 ]
 __version__ = "0.1.0"

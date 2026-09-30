@@ -6,7 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
   "mantle-physics",
   "mantle-data",
-  "mantle-ml",
+  "mantle-ml[train]",
   "mantle-api",
 ]
 
