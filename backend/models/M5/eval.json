@@ -1,0 +1,28 @@
+{
+  "model": "M5",
+  "metrics": {
+    "mae_fillage_ml": 0.719267,
+    "mae_fillage_threshold": 35.966274,
+    "mae_impacts_day_ml": 55.277615,
+    "mae_impacts_day_threshold": 2814.266205,
+    "mae_impact_vel_ml": 0.010259,
+    "mae_impact_vel_threshold": 0.563883,
+    "mae_amps_ml": 0.377317,
+    "mae_amps_threshold": 25.215804,
+    "mae_fillage_phys_raw": 37.063879
+  },
+  "primary": {
+    "name": "mae_fillage_pts",
+    "value": 0.719267,
+    "target": 4.0,
+    "baseline_name": "fixed_thresholds",
+    "baseline": 35.966274,
+    "direction": "lower"
+  },
+  "train_seconds": 8.48,
+  "source": "physics_synthetic",
+  "version": "1.0.0",
+  "data_hash": "b61db26a68e763d9",
+  "quick": false,
+  "trained_at": "2026-09-30T07:51:53+00:00"
+}

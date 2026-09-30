@@ -1,0 +1,40 @@
+{
+  "model": "M1",
+  "metrics": {
+    "mae_T_ml": 0.197396,
+    "mae_T_analytic": 3.829268,
+    "cover80_T": 0.766598,
+    "mae_rh_ml": 0.004542,
+    "mae_rh_analytic": 0.074543,
+    "cover80_rh": 0.738381,
+    "mae_battery_ml": 0.001292,
+    "mae_battery_analytic": 0.025562,
+    "cover80_battery": 0.811726
+  },
+  "primary": {
+    "name": "mae_T_C",
+    "value": 0.197396,
+    "target": 6.0,
+    "baseline_name": "analytic",
+    "baseline": 3.829268,
+    "direction": "lower",
+    "secondary": {
+      "name": "mae_rh_m",
+      "value": 0.004542,
+      "target": 0.8,
+      "baseline": 0.074543
+    }
+  },
+  "targets": {
+    "mae_T_C": 6.0,
+    "mae_rh_m": 0.8
+  },
+  "train_seconds": 16.91,
+  "source": "physics_synthetic",
+  "version": "1.0.0",
+  "data_hash": "bd269d5a6dca71f3",
+  "n_rows": 51919,
+  "quick": false,
+  "cv": "5-fold grouped by well",
+  "trained_at": "2026-09-30T07:47:49+00:00"
+}

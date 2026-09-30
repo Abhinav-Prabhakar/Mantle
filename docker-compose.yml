@@ -1,0 +1,44 @@
+# docker compose up            -> http://localhost:8080 (web + api)
+# docker compose --profile data run --rm data     rebuild the synthetic database into the mantle-data volume
+# docker compose --profile train run --rm train   retrain every model (torch image)
+name: mantle
+
+services:
+  api:
+    build: { context: ., dockerfile: docker/api.Dockerfile, target: api }
+    image: mantle-api:latest
+    volumes:
+      - mantle-data:/var/mantle          # audit log + rebuilt data persist here (seeded from the image on first start)
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 6
+    restart: unless-stopped
+
+  web:
+    build: { context: ., dockerfile: docker/web.Dockerfile }
+    image: mantle-web:latest
+    ports: ["8080:80"]
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+
+  data:
+    profiles: ["data"]
+    image: mantle-api:latest
+    build: { context: ., dockerfile: docker/api.Dockerfile, target: api }
+    volumes: [ "mantle-data:/var/mantle" ]
+    command: >
+      sh -c "mkdir -p /var/mantle/reference && cp -n /app/backend/data/reference/* /var/mantle/reference/ &&
+             mantle-data build --scale $${MANTLE_SCALE:-default}"
+
+  train:
+    profiles: ["train"]
+    build: { context: ., dockerfile: docker/api.Dockerfile, target: train }
+    image: mantle-train:latest
+    volumes: [ "mantle-data:/var/mantle" ]
+
+volumes:
+  mantle-data:

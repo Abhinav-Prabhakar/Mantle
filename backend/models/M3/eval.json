@@ -1,0 +1,35 @@
+{
+  "model": "M3",
+  "metrics": {
+    "macro_f1_cnn": 0.939065,
+    "macro_f1_fourier_knn": 0.586624,
+    "macro_f1_perturbed_cnn": 0.853299,
+    "macro_f1_perturbed_fourier_knn": 0.431767,
+    "ece_after_temperature": 0.011599,
+    "temperature": 0.634534,
+    "params": 174092,
+    "n_train": 54000,
+    "n_test": 12000,
+    "epochs": 12
+  },
+  "primary": {
+    "name": "macro_f1_synthetic_test",
+    "value": 0.939065,
+    "target": 0.95,
+    "baseline_name": "fourier_knn",
+    "baseline": 0.586624,
+    "direction": "higher",
+    "secondary": {
+      "name": "macro_f1_perturbed",
+      "value": 0.853299,
+      "target": 0.9,
+      "baseline": 0.431767
+    }
+  },
+  "train_seconds": 755.06,
+  "source": "physics_synthetic",
+  "version": "1.0.0",
+  "data_hash": "0995b0a3a9f15858",
+  "quick": false,
+  "trained_at": "2026-09-30T08:15:18+00:00"
+}

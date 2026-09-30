@@ -1,0 +1,37 @@
+{
+  "model": "M0",
+  "metrics": {
+    "mape_gbm_pct": 4.337736,
+    "mape_walther_2pt_pct": 4.621458,
+    "mape_beggs_robinson_pct": 98.490004,
+    "mape_gbm_ge50C_pct": 3.881162,
+    "mape_walther_ge50C_pct": 4.017765
+  },
+  "primary": {
+    "name": "mape_gbm_ge50C_pct",
+    "value": 3.881162,
+    "target": 12.0,
+    "baseline_name": "beggs_robinson",
+    "baseline": 98.490004,
+    "direction": "lower"
+  },
+  "monotone_in_T": true,
+  "envelope": {
+    "available": true,
+    "lit_min_cp": 1.7,
+    "lit_max_cp": 11900.0,
+    "pred_80_120_160C": [
+      1484.610144,
+      219.205208,
+      59.562925
+    ],
+    "inside": true
+  },
+  "train_seconds": 1.62,
+  "source": "physics_synthetic",
+  "version": "1.0.0",
+  "data_hash": "af8a6641bcaefb54",
+  "n_rows": 6000,
+  "quick": false,
+  "trained_at": "2026-09-30T07:47:32+00:00"
+}

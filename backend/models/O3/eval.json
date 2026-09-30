@@ -1,0 +1,54 @@
+{
+  "model": "O3",
+  "metrics": {
+    "eval_wells": 12,
+    "eval_cycles": [
+      2,
+      4,
+      6
+    ],
+    "train_seconds_ppo": 43.785967,
+    "timesteps": 160000,
+    "static_net": 4383526.109317,
+    "static_oil": 2307.057188,
+    "static_impacts": 7528.993441,
+    "static_feasible": 0.0,
+    "static_risk": 6599484.44254,
+    "o1_only_net": 11371257.497565,
+    "o1_only_oil": 2296.157565,
+    "o1_only_impacts": 1487.079376,
+    "o1_only_feasible": 0.0,
+    "o1_only_risk": 57828.941501,
+    "o1_o2_net": 11136014.403152,
+    "o1_o2_oil": 2171.144915,
+    "o1_o2_impacts": 1451.092235,
+    "o1_o2_feasible": 0.0,
+    "o1_o2_risk": 62473.680077,
+    "ppo_net": 11395731.16929,
+    "ppo_oil": 2359.500362,
+    "ppo_impacts": 3102.710302,
+    "ppo_feasible": 0.0,
+    "ppo_risk": 119434.985529,
+    "ppo_vs_o1_o2_net_ratio": 1.038462
+  },
+  "primary": {
+    "name": "ppo_net_inr_per_cycle",
+    "value": 11395731.16929,
+    "target": null,
+    "target_text": "shown vs O1+O2 (no target)",
+    "baseline_name": "static practice",
+    "baseline": 4383526.109317,
+    "direction": "higher",
+    "secondary": {
+      "name": "o1_o2_net_inr_per_cycle",
+      "value": 11136014.403152
+    }
+  },
+  "notes": [],
+  "train_seconds": 47.32,
+  "source": "physics_synthetic",
+  "version": "1.0.0",
+  "data_hash": "48609fa6a4f7342c",
+  "quick": false,
+  "trained_at": "2026-09-30T08:32:20+00:00"
+}

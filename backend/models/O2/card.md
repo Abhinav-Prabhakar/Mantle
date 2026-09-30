@@ -1,0 +1,12 @@
+# O2 CSS planner
+Optuna TPE over steam t, injection pressure, soak d and cut-off d with the O1 pump optimum nested (joint) versus steam-first-then-pump (sequential), scored as
+**net value per calendar day of a repeating cycle** (injection + soak + production days in the denominator, so the cut-off and soak matter). **Source: physics_synthetic**.
+No weights: `train` runs the planner on 60 wells (budget 4 s each), re-runs the chosen, sequential and practice plans on the exact twin
+(`synth.wellmodel.cycle_run`, the basis of the API's `/state`), reports those twin numbers, and caches the plans (with plan curves) in `plans.json`.
+- Metrics: {"n_wells": 60, "seconds_max": 1.941434416017728, "seconds_mean": 1.4340542492825383, "joint_ge_sequential_all": true, "ranges_valid_all": true, "coupling_dividend_inr_mean": 50652.82941710913, "gain_vs_practice_inr_mean_twin_verified": 8938677.287024666, "share_wells_twin_gain_positive": 1.0, "oil_lift_mean_twin_verified": 0.24623669502016188, "sor_practice_mean": 1.6254755705055026, "sor_mantle_mean": 1.9222264859183311, "reverify_oil_lift_max_abs_err": 0.0, "reverify_sor_max_abs_err": 0.0, "share_wells_cutoff_moved": 1.0, "share_wells_soak_moved": 1.0, "cutoff_mantle_mean": 63.13333333333333, "cutoff_economic_rule_mean": 65.98333333333333, "cutoff_economic_rule_practice_mean": 68.8, "m2_cum_oil_vs_twin_abs_mean": 0.6722874168047978}
+- Steam volume is searched within +-25 % of the practice volume (`STEAM_TRUST`): the twin's per-day optimum is flat down to the 500 t bound, and a 30 % cut per cycle is neither a defensible operating change nor inside the data M1/M2 were trained on.
+- Reported per plan: oil lift (oil per calendar day vs practice), SOR (`economics.sor` on cumulative oil to the plan's cut-off = the twin's `sor` metric at that day), INR per cycle
+  (margin gain over one practice cycle of calendar time), coupling dividend = joint - sequential on the same basis. Joint >= sequential >= practice by construction on the twin (fallbacks are flagged).
+- M2 gives the P10-P90 band and is reported as a cross-check (`m2_check`); it is not the score. Practice baseline is the fixture (800 t, 9 MPa, 4 d, 120 d at 5.4 SPM).
+- Limits: injection pressure is a modelling assumption (no pressure physics in the twin); no cross-cycle decline (the twin has none; M2 carries it in the band only); the plan is checked against the twin, not against field results;
+  cut-off is on the twin's day axis; chemical/maintenance day-rates are outside the objective (the twin's cut-off rule ignores them too).

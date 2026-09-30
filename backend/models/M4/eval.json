@@ -1,0 +1,42 @@
+{
+  "model": "M4",
+  "metrics": {
+    "n_cycles": 619,
+    "n_events_rod": 68,
+    "n_events_unseat": 86,
+    "rod_c_index_ml": 0.9691,
+    "rod_c_index_age_baseline": 0.454216,
+    "rod_brier_30d_ml": 0.017183,
+    "rod_brier_30d_weibull": 0.056221,
+    "rod_brier_improvement": 0.694357,
+    "unseat_c_index_ml": 0.67851,
+    "unseat_c_index_age_baseline": 0.44203,
+    "unseat_brier_30d_ml": 0.016249,
+    "unseat_brier_30d_weibull": 0.016244,
+    "unseat_brier_improvement": -0.000314,
+    "rod_top3_hit": 0.396,
+    "rod_top3_random": 0.021429
+  },
+  "primary": {
+    "name": "c_index_rod",
+    "value": 0.9691,
+    "target": 0.75,
+    "baseline_name": "weibull_age",
+    "baseline": 0.454216,
+    "direction": "higher",
+    "secondary": {
+      "name": "brier_improvement_30d",
+      "value": 0.694357,
+      "target": 0.2
+    }
+  },
+  "notes": [
+    "Unseat model: C-index 0.68 (target 0.75) and Brier(30 d) improvement -0.00: MISSED. Unseats are rare after the S5 recalibration (~0.8 per well-year), and only the first unseat per production period is modelled."
+  ],
+  "train_seconds": 4.95,
+  "source": "physics_synthetic",
+  "version": "1.0.0",
+  "data_hash": "e6cda07ca7db4d5a",
+  "quick": false,
+  "trained_at": "2026-09-30T11:03:40+00:00"
+}

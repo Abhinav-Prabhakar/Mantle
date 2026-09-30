@@ -1,0 +1,1 @@
+{"version": "1.0.0", "source": "physics_synthetic", "features": ["steam_t", "inj_pressure_mpa", "steam_quality", "soak_days", "cycle_no", "steam_eff", "day", "phase_i", "dprod", "an_T", "an_rh", "an_exc", "an_Te", "an_rhe", "an_exce"], "trained_at": "2026-09-30T07:47:49+00:00", "n_rows": 51919, "data_hash": "bd269d5a6dca71f3"}

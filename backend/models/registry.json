@@ -1,0 +1,366 @@
+{
+  "models": {
+    "M0": {
+      "data_hash": "af8a6641bcaefb54",
+      "id": "M0",
+      "metrics": {
+        "mape_beggs_robinson_pct": 98.490004,
+        "mape_gbm_ge50C_pct": 3.881162,
+        "mape_gbm_pct": 4.337736,
+        "mape_walther_2pt_pct": 4.621458,
+        "mape_walther_ge50C_pct": 4.017765,
+        "primary": {
+          "baseline": 98.490004,
+          "baseline_name": "beggs_robinson",
+          "direction": "lower",
+          "name": "mape_gbm_ge50C_pct",
+          "target": 12.0,
+          "value": 3.881162
+        }
+      },
+      "quick": false,
+      "size_bytes": 74222,
+      "source": "physics_synthetic",
+      "train_seconds": 1.62,
+      "trained_at": "2026-09-30T07:47:32+00:00",
+      "version": "1.0.0"
+    },
+    "M1": {
+      "data_hash": "bd269d5a6dca71f3",
+      "id": "M1",
+      "metrics": {
+        "cover80_T": 0.766598,
+        "cover80_battery": 0.811726,
+        "cover80_rh": 0.738381,
+        "mae_T_analytic": 3.829268,
+        "mae_T_ml": 0.197396,
+        "mae_battery_analytic": 0.025562,
+        "mae_battery_ml": 0.001292,
+        "mae_rh_analytic": 0.074543,
+        "mae_rh_ml": 0.004542,
+        "primary": {
+          "baseline": 3.829268,
+          "baseline_name": "analytic",
+          "direction": "lower",
+          "name": "mae_T_C",
+          "secondary": {
+            "baseline": 0.074543,
+            "name": "mae_rh_m",
+            "target": 0.8,
+            "value": 0.004542
+          },
+          "target": 6.0,
+          "value": 0.197396
+        }
+      },
+      "quick": false,
+      "size_bytes": 713529,
+      "source": "physics_synthetic",
+      "train_seconds": 16.91,
+      "trained_at": "2026-09-30T07:47:49+00:00",
+      "version": "1.0.0"
+    },
+    "M2": {
+      "data_hash": "8db93f257a652c82",
+      "id": "M2",
+      "metrics": {
+        "cycle_cover80_mean": 0.792069,
+        "cycle_cover80_std": 0.030062,
+        "cycle_mape_arps_pct": 26.621419,
+        "cycle_mape_ml_pct": 6.450035,
+        "cycle_mape_ml_same_subset_pct": 6.473569,
+        "cycle_mape_ml_with_well_scaling_pct": 6.624872,
+        "daily_cover80": 0.805709,
+        "daily_mape_ml_pct": 6.854627,
+        "n_cycles": 565,
+        "n_cycles_with_prev": 505,
+        "primary": {
+          "baseline": 26.621419,
+          "baseline_name": "arps_prev_cycle",
+          "direction": "lower",
+          "name": "cycle_cum_oil_mape_pct",
+          "target": 10.0,
+          "value": 6.450035
+        }
+      },
+      "quick": false,
+      "size_bytes": 823976,
+      "source": "physics_synthetic",
+      "train_seconds": 21.86,
+      "trained_at": "2026-09-30T07:48:11+00:00",
+      "version": "1.0.0"
+    },
+    "M3": {
+      "data_hash": "0995b0a3a9f15858",
+      "id": "M3",
+      "metrics": {
+        "ece_after_temperature": 0.011599,
+        "epochs": 12,
+        "macro_f1_cnn": 0.939065,
+        "macro_f1_fourier_knn": 0.586624,
+        "macro_f1_perturbed_cnn": 0.853299,
+        "macro_f1_perturbed_fourier_knn": 0.431767,
+        "n_test": 12000,
+        "n_train": 54000,
+        "params": 174092,
+        "primary": {
+          "baseline": 0.586624,
+          "baseline_name": "fourier_knn",
+          "direction": "higher",
+          "name": "macro_f1_synthetic_test",
+          "secondary": {
+            "baseline": 0.431767,
+            "name": "macro_f1_perturbed",
+            "target": 0.9,
+            "value": 0.853299
+          },
+          "target": 0.95,
+          "value": 0.939065
+        },
+        "temperature": 0.634534
+      },
+      "quick": false,
+      "size_bytes": 1411084,
+      "source": "physics_synthetic",
+      "train_seconds": 755.06,
+      "trained_at": "2026-09-30T08:15:18+00:00",
+      "version": "1.0.0"
+    },
+    "M4": {
+      "data_hash": "e6cda07ca7db4d5a",
+      "id": "M4",
+      "metrics": {
+        "n_cycles": 619,
+        "n_events_rod": 68,
+        "n_events_unseat": 86,
+        "primary": {
+          "baseline": 0.454216,
+          "baseline_name": "weibull_age",
+          "direction": "higher",
+          "name": "c_index_rod",
+          "secondary": {
+            "name": "brier_improvement_30d",
+            "target": 0.2,
+            "value": 0.694357
+          },
+          "target": 0.75,
+          "value": 0.9691
+        },
+        "rod_brier_30d_ml": 0.017183,
+        "rod_brier_30d_weibull": 0.056221,
+        "rod_brier_improvement": 0.694357,
+        "rod_c_index_age_baseline": 0.454216,
+        "rod_c_index_ml": 0.9691,
+        "rod_top3_hit": 0.396,
+        "rod_top3_random": 0.021429,
+        "unseat_brier_30d_ml": 0.016249,
+        "unseat_brier_30d_weibull": 0.016244,
+        "unseat_brier_improvement": -0.000314,
+        "unseat_c_index_age_baseline": 0.44203,
+        "unseat_c_index_ml": 0.67851
+      },
+      "quick": false,
+      "size_bytes": 357936,
+      "source": "physics_synthetic",
+      "train_seconds": 4.95,
+      "trained_at": "2026-09-30T11:03:40+00:00",
+      "version": "1.0.0"
+    },
+    "M5": {
+      "data_hash": "b61db26a68e763d9",
+      "id": "M5",
+      "metrics": {
+        "mae_amps_ml": 0.377317,
+        "mae_amps_threshold": 25.215804,
+        "mae_fillage_ml": 0.719267,
+        "mae_fillage_phys_raw": 37.063879,
+        "mae_fillage_threshold": 35.966274,
+        "mae_impact_vel_ml": 0.010259,
+        "mae_impact_vel_threshold": 0.563883,
+        "mae_impacts_day_ml": 55.277615,
+        "mae_impacts_day_threshold": 2814.266205,
+        "primary": {
+          "baseline": 35.966274,
+          "baseline_name": "fixed_thresholds",
+          "direction": "lower",
+          "name": "mae_fillage_pts",
+          "target": 4.0,
+          "value": 0.719267
+        }
+      },
+      "quick": false,
+      "size_bytes": 657224,
+      "source": "physics_synthetic",
+      "train_seconds": 8.48,
+      "trained_at": "2026-09-30T07:51:53+00:00",
+      "version": "1.0.0"
+    },
+    "M6": {
+      "data_hash": "da81ee1f0dce0bc7",
+      "id": "M6",
+      "metrics": {
+        "f1_3w_3sigma": 0.68523,
+        "f1_3w_ae": 0.723404,
+        "f1_3w_ens": 0.720207,
+        "f1_3w_ens_real_only": 0.666667,
+        "f1_3w_if": 0.702413,
+        "f1_3w_z": 0.625899,
+        "f1_s3_3sigma": 0.235294,
+        "f1_s3_ae": 0.518057,
+        "f1_s3_deployed": 0.628319,
+        "f1_s3_ens": 0.53,
+        "f1_s3_ens_pretrained_only": 0.360563,
+        "f1_s3_if": 0.628319,
+        "f1_s3_z": 0.312169,
+        "n_3w_test_events": 94,
+        "n_3w_test_streams": 112,
+        "n_s3_test_wells": 6,
+        "primary": {
+          "baseline": 0.68523,
+          "baseline_name": "3-sigma",
+          "direction": "higher",
+          "name": "event_f1_3w_test",
+          "secondary": {
+            "baseline": 0.235294,
+            "name": "event_f1_s3_test",
+            "value": 0.628319
+          },
+          "target": 0.8,
+          "value": 0.720207
+        },
+        "type_accuracy_on_event_steps": 0.723666
+      },
+      "quick": false,
+      "size_bytes": 1024582,
+      "source": "real (3W pre-train/validation) + physics_synthetic (S3 fine-tune)",
+      "train_seconds": 153.77,
+      "trained_at": "2026-09-30T08:34:59+00:00",
+      "version": "1.0.0"
+    },
+    "O1": {
+      "data_hash": "aef049e746e89862",
+      "id": "O1",
+      "metrics": {
+        "baseline_infeasible_share": 0.94,
+        "impacts_reduction_all_states": 0.945578,
+        "impacts_reduction_pounding_states": 0.950889,
+        "latency_ms_p50": 7.702979,
+        "latency_ms_p95": 11.970156,
+        "n_pounding_states": 384,
+        "n_states": 400,
+        "objective_gain_inr_per_day_mean": 447494.185059,
+        "oil_change_all_states": -0.008655,
+        "oil_change_pounding_states": -0.013945,
+        "primary": {
+          "baseline": 0.0,
+          "baseline_name": "fixed_spm (0 % by definition)",
+          "direction": "higher",
+          "name": "impacts_reduction_all_states",
+          "secondary": {
+            "name": "oil_change_all_states",
+            "target": -0.02,
+            "value": -0.008655
+          },
+          "target": 0.15,
+          "value": 0.945578
+        },
+        "recommended_infeasible_share": 0.0
+      },
+      "quick": false,
+      "size_bytes": 2530,
+      "source": "physics_synthetic",
+      "train_seconds": 3.71,
+      "trained_at": "2026-09-30T11:00:30+00:00",
+      "version": "1.0.0"
+    },
+    "O2": {
+      "data_hash": "71d0bef2f1a4e6c9",
+      "id": "O2",
+      "metrics": {
+        "coupling_dividend_inr_mean": 50652.829417,
+        "cutoff_economic_rule_mean": 65.983333,
+        "cutoff_economic_rule_practice_mean": 68.8,
+        "cutoff_mantle_mean": 63.133333,
+        "gain_vs_practice_inr_mean_twin_verified": 8938677.287025,
+        "joint_ge_sequential_all": true,
+        "m2_cum_oil_vs_twin_abs_mean": 0.672287,
+        "n_wells": 60,
+        "oil_lift_mean_twin_verified": 0.246237,
+        "primary": {
+          "baseline": 0.0,
+          "baseline_name": "practice (L13)",
+          "direction": "higher",
+          "name": "gain_vs_practice_inr_per_cycle_twin_verified",
+          "target": 0.0,
+          "target_text": "> 0 (no numeric target in spec)",
+          "value": 8938677.287025
+        },
+        "ranges_valid_all": true,
+        "reverify_oil_lift_max_abs_err": 0.0,
+        "reverify_sor_max_abs_err": 0.0,
+        "seconds_max": 1.941434,
+        "seconds_mean": 1.434054,
+        "share_wells_cutoff_moved": 1.0,
+        "share_wells_soak_moved": 1.0,
+        "share_wells_twin_gain_positive": 1.0,
+        "sor_mantle_mean": 1.922226,
+        "sor_practice_mean": 1.625476
+      },
+      "quick": false,
+      "size_bytes": 180413,
+      "source": "physics_synthetic",
+      "train_seconds": 86.53,
+      "trained_at": "2026-09-30T11:23:06+00:00",
+      "version": "1.1.0"
+    },
+    "O3": {
+      "data_hash": "48609fa6a4f7342c",
+      "id": "O3",
+      "metrics": {
+        "eval_wells": 12,
+        "o1_o2_feasible": 0.0,
+        "o1_o2_impacts": 1451.092235,
+        "o1_o2_net": 11136014.403152,
+        "o1_o2_oil": 2171.144915,
+        "o1_o2_risk": 62473.680077,
+        "o1_only_feasible": 0.0,
+        "o1_only_impacts": 1487.079376,
+        "o1_only_net": 11371257.497565,
+        "o1_only_oil": 2296.157565,
+        "o1_only_risk": 57828.941501,
+        "ppo_feasible": 0.0,
+        "ppo_impacts": 3102.710302,
+        "ppo_net": 11395731.16929,
+        "ppo_oil": 2359.500362,
+        "ppo_risk": 119434.985529,
+        "ppo_vs_o1_o2_net_ratio": 1.038462,
+        "primary": {
+          "baseline": 4383526.109317,
+          "baseline_name": "static practice",
+          "direction": "higher",
+          "name": "ppo_net_inr_per_cycle",
+          "secondary": {
+            "name": "o1_o2_net_inr_per_cycle",
+            "value": 11136014.403152
+          },
+          "target": null,
+          "target_text": "shown vs O1+O2 (no target)",
+          "value": 11395731.16929
+        },
+        "static_feasible": 0.0,
+        "static_impacts": 7528.993441,
+        "static_net": 4383526.109317,
+        "static_oil": 2307.057188,
+        "static_risk": 6599484.44254,
+        "timesteps": 160000,
+        "train_seconds_ppo": 43.785967
+      },
+      "quick": false,
+      "size_bytes": 163274,
+      "source": "physics_synthetic",
+      "train_seconds": 47.32,
+      "trained_at": "2026-09-30T08:32:20+00:00",
+      "version": "1.0.0"
+    }
+  }
+}

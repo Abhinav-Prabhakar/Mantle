@@ -29,23 +29,30 @@
 <div id="ui">
   <!-- identity + live telemetry -->
   <header class="hud hud-tl">
-    <div class="brand"><span class="dot" id="live-dot"></span>MANTLE <em>Well View</em></div>
+    <div class="brand"><span class="dot" id="live-dot"></span>MANTLE <em>Well View</em><span class="sim-pill" data-tip="sim">Simulated</span></div>
     <h1>BGW-17</h1>
     <div class="sub">Baghewala · Jodhpur Sandstone · CSS cycle 4 · <span id="phase-sub">Production</span></div>
     <div class="telemetry">
       <div data-tip="spm"><label>SPM</label><span id="t-spm">0.0</span><small>strokes/min</small></div>
+      <div data-tip="stroke"><label>Stroke</label><span id="t-stroke">0.0</span><small>m</small></div>
+      <div data-tip="vfd"><label>VFD</label><span id="t-hz">0.0</span><small>Hz</small></div>
+      <div data-tip="amps"><label>Motor</label><span id="t-amps">0</span><small>A</small></div>
       <div data-tip="load"><label>Rod load</label><span id="t-load">0</span><small>kN</small></div>
-      <div data-tip="sandface"><label>Sandface</label><span id="t-temp">0</span><small>°C</small></div>
-      <div data-tip="visc"><label>Viscosity</label><span id="t-visc">0</span><small>cP</small></div>
-      <div data-tip="level"><label>Fluid lvl</label><span id="t-level">0</span><small>m</small></div>
     </div>
   </header>
 
   <!-- value + cycle + advisor, top right -->
-  <aside class="hud panel value-panel" id="value-panel" data-tip="net">
+  <aside class="hud panel value-panel" id="value-panel">
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 4h12M6 9h12M6 4c5 0 8 1.6 8 5s-3 5-8 5l8 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span id="v-net">—</span><small>/ day</small>
-    <span class="delta" id="v-delta">—</span>
+    <div class="vp-row">
+      <span id="v-net">—</span><small>/ day</small>
+      <span class="delta" id="v-delta">—</span>
+    </div>
+    <div class="cost-pop" id="cost-pop">
+      <div class="cp-top"><span>Lifting cost</span><b id="c-bbl">—</b></div>
+      <div class="cost-bar" id="c-bar"></div>
+      <div class="cost-rows" id="c-rows"></div>
+    </div>
   </aside>
 
   <div class="hud rail" id="rail">
@@ -62,19 +69,28 @@
         </div>
         <div class="stats">
           <div data-tip="battery"><span id="s-battery">0%</span><label>Heat left</label></div>
-          <div data-tip="rh"><span id="s-rh">0 m</span><label>Heated r</label></div>
+          <div data-tip="cum"><span id="s-cum">0</span><label>Cum. oil</label></div>
           <div data-tip="cutoff"><span id="s-cutoff">0 d</span><label>To cut-off</label></div>
         </div>
       </div>
     </aside>
 
     <aside class="panel advisor-panel" id="advisor-panel">
-      <div class="panel-head"><span class="ph-title"><i class="spark"></i>Advisor</span><span class="ph-sum" id="adv-conf">—</span></div>
-      <div class="panel-body">
+      <div class="panel-head"><span class="ph-title"><i class="spark"></i>Advisor</span>
+        <div class="mini-seg" id="adv-tabs" role="tablist"><button class="active" data-tab="pump" type="button">Pump</button><button data-tab="cycle" type="button">Next cycle</button></div>
+      </div>
+      <div class="panel-body adv-body" data-body="pump">
         <div class="adv-title" id="adv-title">—</div>
         <div class="adv-detail" id="adv-detail"></div>
+        <div class="adv-drive" id="adv-drive"></div>
         <div class="adv-deltas" id="adv-deltas"></div>
         <button class="adv-apply" id="adv-apply" type="button">Apply to well</button>
+      </div>
+      <div class="panel-body adv-body" data-body="cycle" hidden>
+        <div class="plan-head"><span>Cycle 5 recipe</span><em><i class="ghost"></i>today <i class="solid"></i>Mantle</em></div>
+        <div class="levers" id="levers"></div>
+        <div class="dividend" id="dividend"></div>
+        <button class="adv-apply" id="plan-apply" type="button">Schedule for cycle 5</button>
       </div>
     </aside>
   </div>
@@ -111,37 +127,46 @@
     <button class="icon-btn" id="btn-play" type="button" title="Run the cycle (Space)">
       <svg viewBox="0 0 24 24" width="16" height="16"><path d="M7 5l12 7-12 7z" fill="currentColor"/></svg>
     </button>
+    <button class="icon-btn" id="btn-inspect" type="button" title="Inspect the machine (I)">
+      <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M8 10.5h5M10.5 8v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
     <button class="icon-btn" id="btn-cam" type="button" title="Reset camera (C)">
       <svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
     </button>
   </footer>
 
-  <div class="hint-bar">Drag to orbit · Right-drag to pan · Scroll to zoom · <kbd>N</kbd> day/night · <kbd>T</kbd> thermal · <kbd>M</kbd> metrics · <kbd>2</kbd> section</div>
+  <div class="hint-bar">Drag to orbit · Scroll to zoom · <kbd>I</kbd> inspect · <kbd>N</kbd> day/night · <kbd>T</kbd> thermal · <kbd>M</kbd> metrics · <kbd>2</kbd> section</div>
 
   <!-- metrics drawer -->
   <section class="hud metrics open" id="metrics">
-    <button class="drawer-tab" id="metrics-tab" type="button">Metrics<svg viewBox="0 0 12 12" width="10" height="10"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+    <button class="drawer-tab" id="metrics-tab" type="button"><i class="tab-alert" id="tab-alert" hidden></i>Metrics<svg viewBox="0 0 12 12" width="10" height="10"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
     <div class="kpis" id="kpis"></div>
     <div class="cards">
       <div class="card span-4">
         <div class="card-head"><span>Cycle production</span>
-          <div class="pills"><span class="pill"><i class="ln"></i>Oil</span><span class="pill"><i class="band"></i>P10–P90</span><span class="pill"><i class="ln amber dash"></i>Sandface T</span></div>
+          <div class="pills"><span class="pill"><i class="ln"></i>Cycle 4</span><span class="pill"><i class="ln faint"></i>Cycles 1–3</span><span class="pill"><i class="ln green dash"></i>Mantle plan</span><span class="pill"><i class="ln amber dash"></i>Sandface T</span></div>
         </div>
         <canvas id="c-cycle"></canvas>
       </div>
       <div class="card span-3">
         <div class="card-head"><span>Dynamometer card</span><em id="dyno-cls">—</em></div>
         <canvas id="c-dyno"></canvas>
-        <div class="card-foot"><span><i class="ln"></i>Surface</span><span><i class="ln blue"></i>Downhole</span></div>
+        <div class="card-foot"><span><i class="ln"></i>Surface</span><span><i class="ln blue"></i>Downhole</span><span><i class="burst"></i>Impact</span><span class="foot-r" id="dyno-torque">—</span></div>
       </div>
       <div class="card span-2">
-        <div class="card-head"><span>Heat in the well</span><em>T vs depth</em></div>
+        <div class="card-head"><span>Heat &amp; pressure</span><em>vs depth</em></div>
         <canvas id="c-profile"></canvas>
       </div>
-      <div class="card span-3">
-        <div class="card-head"><span>Operating limits</span></div>
-        <div class="limits" id="limits"></div>
-        <ul class="alerts" id="alerts"></ul>
+      <div class="card span-3 health-card">
+        <div class="card-head"><span>Rod &amp; pump health</span><em id="health-sum">—</em></div>
+        <div class="health">
+          <div class="h-rods"><div class="h-label">Rod string <b id="rods-sum"></b></div><div class="rod-grid" id="rod-grid"></div><div class="h-note" id="rods-note"></div></div>
+          <div class="h-side">
+            <div class="h-block"><div class="h-label">Impact loading <b id="imp-sum"></b></div><div class="strokes" id="strokes"></div><div class="h-note" id="imp-note"></div></div>
+            <div class="h-block"><div class="h-label">Pump unseats <b id="uns-sum"></b></div><div class="months" id="months"></div><div class="h-note" id="uns-note"></div></div>
+          </div>
+        </div>
+        <div class="alert-line" id="alert-line"></div>
       </div>
     </div>
   </section>
@@ -157,6 +182,15 @@
   <i class="glider"></i>
 </nav>
 
+<div id="inspect" class="inspect">
+  <svg class="insp-lines" id="insp-lines"></svg>
+  <div class="insp-tags" id="insp-tags"></div>
+  <div class="insp-bar panel" id="insp-bar">
+    <span class="ib-title"><i class="spark"></i>Inspect</span>
+    <div class="seg dark" id="insp-stops"><button data-stop="surface" class="active" type="button">Pumping unit</button><button data-stop="downhole" type="button">Downhole</button></div>
+    <button class="ib-exit" id="insp-exit" type="button" title="Back (Esc)">Done</button>
+  </div>
+</div>
 <div id="section" class="section"></div>
 <div id="tooltip" class="tooltip"></div>
 

@@ -1,0 +1,31 @@
+"""Mantle physics core: a faithful Python port of the browser twin plus wave-equation and hazard models."""
+
+from . import rig
+from .constants import CYCLE
+from .derived import WellContext, derive
+from .dyno import (
+    DYNO_CLASSES,
+    CardBatch,
+    RodString,
+    card_features,
+    downhole_card,
+    surface_card_from_downhole,
+    synthesize_cards,
+)
+from .hazard import (
+    pump_unseat_hazard,
+    pump_uplift_kn,
+    rod_damage_rate,
+    rod_hazard_rate,
+    simulate_rod_failures,
+)
+from .twin import Metrics, State, WellSim
+from .viscosity import viscosity_cp
+
+__all__ = [
+    "CYCLE", "DYNO_CLASSES", "CardBatch", "Metrics", "RodString", "State", "WellSim", "card_features",
+    "derive", "downhole_card", "pump_unseat_hazard", "pump_uplift_kn", "rig", "rod_damage_rate",
+    "rod_hazard_rate", "simulate_rod_failures", "surface_card_from_downhole", "synthesize_cards",
+    "viscosity_cp", "WellContext",
+]
+__version__ = "0.1.0"

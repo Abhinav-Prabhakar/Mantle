@@ -1,0 +1,4 @@
+sample_id,api,temperature_c,viscosity_cp,density_g_cc,citation,licence,data_kind
+ALOMAIR2016-T1-mean,16.1,81.0,281.2,0.9,"Alomair O., Jumaa M., Alkoriem A., Hamed M. (2016) Heavy oil viscosity and density prediction at normal and elevated temperatures. J Pet Explor Prod Technol 6:253-263. doi:10.1007/s13202-015-0184-8",CC BY 4.0,column_statistic
+ALOMAIR2016-T1-min,11.7,20.0,1.7,0.8,"Alomair O., Jumaa M., Alkoriem A., Hamed M. (2016) Heavy oil viscosity and density prediction at normal and elevated temperatures. J Pet Explor Prod Technol 6:253-263. doi:10.1007/s13202-015-0184-8",CC BY 4.0,column_statistic
+ALOMAIR2016-T1-max,18.8,160.0,11900.0,1.0,"Alomair O., Jumaa M., Alkoriem A., Hamed M. (2016) Heavy oil viscosity and density prediction at normal and elevated temperatures. J Pet Explor Prod Technol 6:253-263. doi:10.1007/s13202-015-0184-8",CC BY 4.0,column_statistic

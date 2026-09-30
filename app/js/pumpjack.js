@@ -261,19 +261,27 @@ export function buildPumpjack({ simple = false } = {}) {
 
   const state = { ropes, carrier, polished, beam, cranks, pitmans, beacon };
 
+  // exploded view (inspect mode): the beam lifts off the samson post, the cranks swing out
+  let explode = 0;
+  const LIFT = 1.7, SPREAD = 1.5;
+  function setExplode(v) { explode = v; }
+
   function update(theta) {
     const p = unitPose(theta);
+    const lift = explode * LIFT;
     beam.rotation.z = p.beam;
-    for (const c of cranks) c.rotation.z = theta;
+    beam.position.y = S.y + lift;
+    cranks.forEach((c, i) => { c.rotation.z = theta; c.position.z = (i ? 1 : -1) * (UNIT.crankZ + explode * SPREAD); });
     for (const pm of pitmans) {
-      const wx = p.crankPin.x, wy = p.crankPin.y, ex = p.equalizer.x, ey = p.equalizer.y - 0.02;
-      pm.position.set(wx, wy, pm.userData.z);
+      const wx = p.crankPin.x, wy = p.crankPin.y, ex = p.equalizer.x, ey = p.equalizer.y - 0.02 + lift;
+      const zz = Math.sign(pm.userData.z) * (Math.abs(pm.userData.z) + explode * SPREAD);
+      pm.position.set(wx, wy, zz);
       const L = Math.hypot(ex - wx, ey - wy);
       pm.userData.bar.scale.y = L;
       pm.rotation.z = Math.atan2(ey - wy, ex - wx) - Math.PI / 2;
     }
     // rope hangs from the arc's tangent point (x = S.x − A, y = S.y) to the carrier bar
-    const topY = S.y, cy = p.carrierY;
+    const topY = S.y + lift, cy = p.carrierY;
     for (const r of ropes) { r.position.set(p.ropeX, topY, r.position.z); r.scale.y = Math.max(0.05, topY - cy - 0.08); }
     carrier.position.set(p.ropeX, cy, 0);
     const prTop = cy + 0.5, prBot = UNIT.stuffingBoxY - 0.35;
@@ -283,5 +291,5 @@ export function buildPumpjack({ simple = false } = {}) {
   }
   update(0);
   root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  return { root, update, state };
+  return { root, update, state, setExplode, parts: { beam, cranks, pitmans } };
 }

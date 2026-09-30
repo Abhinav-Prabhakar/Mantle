@@ -1,0 +1,44 @@
+[project]
+name = "mantle-ml"
+version = "0.1.0"
+description = "Mantle ML: models M0-M6, optimisers O1-O3, registry and CLI"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.5.6",
+    "joblib>=1.6.0",
+    "lightgbm>=4.7.0",
+    "mantle-data",
+    "mantle-physics",
+    "numpy>=2.5.3",
+    "onnxruntime>=1.30.0",
+    "optuna>=5.0.0",
+    "pandas>=3.0.6",
+    "pyarrow>=25.0.1",
+    "scikit-learn>=1.9.1",
+    "scikit-survival>=0.28.0",
+    "scipy>=1.18.1",
+    "typer>=0.27.2",
+]
+
+[project.optional-dependencies]
+# training-only stack: the API serves every model with onnxruntime / lightgbm / scikit-survival and never imports torch
+train = [
+    "gymnasium>=1.3.0",
+    "onnx>=1.23.1",
+    "stable-baselines3>=2.9.0",
+    "torch>=2.14.0",
+]
+
+[project.scripts]
+mantle-ml = "mantle_ml.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mantle_ml"]
+
+[tool.uv.sources]
+mantle-physics = { workspace = true }
+mantle-data = { workspace = true }

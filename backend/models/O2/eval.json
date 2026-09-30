@@ -1,0 +1,39 @@
+{
+  "model": "O2",
+  "metrics": {
+    "n_wells": 60,
+    "seconds_max": 1.941434,
+    "seconds_mean": 1.434054,
+    "joint_ge_sequential_all": true,
+    "ranges_valid_all": true,
+    "coupling_dividend_inr_mean": 50652.829417,
+    "gain_vs_practice_inr_mean_twin_verified": 8938677.287025,
+    "share_wells_twin_gain_positive": 1.0,
+    "oil_lift_mean_twin_verified": 0.246237,
+    "sor_practice_mean": 1.625476,
+    "sor_mantle_mean": 1.922226,
+    "reverify_oil_lift_max_abs_err": 0.0,
+    "reverify_sor_max_abs_err": 0.0,
+    "share_wells_cutoff_moved": 1.0,
+    "share_wells_soak_moved": 1.0,
+    "cutoff_mantle_mean": 63.133333,
+    "cutoff_economic_rule_mean": 65.983333,
+    "cutoff_economic_rule_practice_mean": 68.8,
+    "m2_cum_oil_vs_twin_abs_mean": 0.672287
+  },
+  "primary": {
+    "name": "gain_vs_practice_inr_per_cycle_twin_verified",
+    "value": 8938677.287025,
+    "target": 0.0,
+    "target_text": "> 0 (no numeric target in spec)",
+    "baseline_name": "practice (L13)",
+    "baseline": 0.0,
+    "direction": "higher"
+  },
+  "train_seconds": 86.53,
+  "source": "physics_synthetic",
+  "version": "1.1.0",
+  "data_hash": "71d0bef2f1a4e6c9",
+  "quick": false,
+  "trained_at": "2026-09-30T11:23:06+00:00"
+}

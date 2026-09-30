@@ -209,13 +209,14 @@ export function buildWell(scene) {
     perfs.setMatrixAt(pi++, pm);
   }
   sub.add(perfs);
+  const inRock = [perfs];   // shot tunnels belong to the rock: they stay put when the completion slides out
   // shot tunnels in the cut plane: tapered, oil-filled, staggered left/right
   const tunMat = new THREE.MeshStandardMaterial({ color: 0x0d0805, roughness: 0.18, metalness: 0.1, transparent: true, opacity: 0.85 });
   for (let i = 0; i < 9; i++) {
     const y = yPt + (yPb - yPt) * (i + 0.5) / 9, s = i % 2 ? 1 : -1, len = 0.5 + ((i * 37) % 10) / 20;
     const sh = new THREE.Shape();
     sh.moveTo(s * R.casingIn, y - 0.04); sh.lineTo(s * (R.hole + len), y + 0.005); sh.lineTo(s * R.casingIn, y + 0.04); sh.closePath();
-    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), tunMat); m.position.z = 0.005; sub.add(m);
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), tunMat); m.position.z = 0.005; sub.add(m); inRock.push(m);
   }
 
   /* ---------------- moving rod string (world-aligned group translated by rod position) */
@@ -296,6 +297,17 @@ export function buildWell(scene) {
 
   /* ---------------- per-frame update */
   const wx = WELL.x, wz = WELL.z;
+  // exploded view (inspect mode): the wellhead lifts off the casing head and the completion
+  // slides out of the rock like a drawer, the rod string travelling further than the casing
+  const EXP = { head: 0, down: 0 };
+  function setExplode({ head = EXP.head, down = EXP.down } = {}) {
+    EXP.head = head; EXP.down = down;
+    wh.position.y = head * 0.9;
+    sub.position.z = down * 1.1;
+    for (const o of inRock) o.position.z = (o === inRock[0] ? 0 : 0.005) - sub.position.z;
+    rods.position.z = down * 1.5;
+  }
+
   function update({ dt, time, rodPos, fillage = 0.8, phase = 'PRODUCTION', mobility = 0.5, heatedRadius = 9, steamRate = 0, pxRatio = 1, lightLevel = 1 }) {
     // rod string moves rigidly with the polished rod (displacement below top-of-stroke)
     const disp = rodPos - STROKE.length;                  // 0 at top of stroke, −S at bottom
@@ -364,5 +376,5 @@ export function buildWell(scene) {
   }
 
   root.traverse((o) => { if (o.isMesh) { o.castShadow = o.castShadow ?? true; o.receiveShadow = true; } });
-  return { root, update, wellhead: wh, meniscus, fluid };
+  return { root, update, setExplode, wellhead: wh, meniscus, fluid, rods, sub };
 }
