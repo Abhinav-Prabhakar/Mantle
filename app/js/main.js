@@ -14,7 +14,8 @@ import { WELL, UNIT, STROKE, rodPosition } from './rig.js';
 import { Hud } from './hud.js';
 import { SectionView } from './section.js';
 import { Inspect } from './inspect.js';
-import { CYCLE } from './sim.js';
+import { CYCLE, WellSim } from './sim.js';
+import { connectApi, RemoteTwin } from './api.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -57,13 +58,15 @@ const well = buildWell(scene);
 let props = null;
 try { props = (await import('./props.js')).buildProps(scene); } catch (e) { console.warn('props unavailable', e); }
 
-/* ------------------------------------------------------------------ simulation (sim.js is optional while it's being written) */
-let sim = null;
-try { const { WellSim } = await import('./sim.js'); sim = new WellSim({ spm: 5.4, cycleDay: 41 }); } catch (e) { console.warn('sim unavailable', e); }
-let fallbackTheta = 0;
-let live = null, metricsTimer = 0, thermalLens = params.has('thermal');
+/* ------------------------------------------------------------------ twin: API for every displayed number, local sim for motion */
+// The RemoteTwin asks the Mantle API for all data; the local WellSim only animates the machine.
+const localSim = new WellSim({ spm: 5.4, cycleDay: params.has('day') ? parseFloat(params.get('day')) : 41 });
+$('loader-text') && ($('loader-text').textContent = 'Connecting to the Mantle API…');
+const api = await connectApi();
+let metricsTimer = 0, thermalLens = params.has('thermal');
 let onMetrics = null;
-if (sim && params.has('day')) sim.set({ cycleDay: parseFloat(params.get('day')) });
+const sim = new RemoteTwin({ api, local: localSim, onUpdate: () => { metricsTimer = 0; } });
+sim.openLive();
 
 /* ------------------------------------------------------------------ post */
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }));
@@ -132,8 +135,8 @@ $('btn-inspect').onclick = () => (inspect.active ? inspect.exit() : inspect.ente
   });
 }
 
-function setDay(d) { if (!sim) return; sim.set({ cycleDay: Math.min(CYCLE.days, Math.max(0, d)) }); metricsTimer = 0; syncDaySlider(); }
-function syncDaySlider() { const d = sim.metrics().cycleDay; $('r-day').value = d; $('v-day').textContent = d.toFixed(0); }
+function setDay(d) { sim.set({ cycleDay: Math.min(CYCLE.days, Math.max(0, d)) }); metricsTimer = 0; syncDaySlider(); }
+function syncDaySlider() { const d = sim.params().day; $('r-day').value = d; $('v-day').textContent = d.toFixed(0); }
 let cyclePlaying = false;
 function setCyclePlaying(on) {
   cyclePlaying = on;
@@ -152,16 +155,18 @@ $('btn-day').onclick = () => animateTo(ENV.dayTime);
 $('btn-night').onclick = () => animateTo(ENV.nightTime);
 $('r-time').oninput = (e) => { setTimeOfDay(parseFloat(e.target.value)); syncTod(); };
 $('r-day').oninput = (e) => setDay(parseFloat(e.target.value));
-$('r-spm').oninput = (e) => { const v = parseFloat(e.target.value); sim?.set({ spm: v }); $('v-spm').textContent = `${v.toFixed(1)} SPM`; metricsTimer = 0; };
+$('r-spm').oninput = (e) => { const v = parseFloat(e.target.value); sim.set({ spm: v }); $('v-spm').textContent = `${v.toFixed(1)} SPM`; metricsTimer = 0; };
 const setLens = (on) => { thermalLens = on; $('btn-thermal').classList.toggle('active', on); $('btn-natural').classList.toggle('active', !on); };
 $('btn-natural').onclick = () => setLens(false);
 $('btn-thermal').onclick = () => setLens(true);
 $('btn-play').onclick = () => setCyclePlaying(!cyclePlaying);
 $('btn-cam').onclick = () => resetCamera();
-$('adv-apply').onclick = () => {
-  const r = hud.m?.recommendation; if (!r) return;
-  sim.set({ spm: r.spm, kd: r.kd }); $('r-spm').value = r.spm; $('v-spm').textContent = `${r.spm.toFixed(1)} SPM`; metricsTimer = 0;
+hud.onApply = async (r) => {
+  const res = await sim.applyRecommendation(r);
+  if (res.applied) { $('r-spm').value = r.spm; $('v-spm').textContent = `${r.spm.toFixed(1)} SPM`; metricsTimer = 0; }
+  return res;
 };
+hud.onSchedule = (mantle) => sim.schedulePlan(mantle);
 const drawer = $('metrics');
 // drawer: 'peek' (KPI row only, the default so the section stays in view) or 'open' (all cards)
 let drawerState = params.get('drawer') || 'peek';
@@ -293,16 +298,14 @@ function loop() {
   const env = sky.state;
 
   let theta, st = null;
-  if (sim) {
-    if (cyclePlaying && screen === 'well') {
-      const d = sim.metrics().cycleDay + dt * 2;
-      if (d >= CYCLE.days) { setDay(CYCLE.days); setCyclePlaying(false); } else sim.set({ cycleDay: d });
-    }
-    sim.step(dt); theta = sim.theta; st = sim.state;
-  } else { fallbackTheta += dt * (2 * Math.PI * 5.4 / 60); theta = fallbackTheta; }
+  if (cyclePlaying && screen === 'well') {
+    const d = sim.params().day + dt * 2;
+    if (d >= CYCLE.days) { setDay(CYCLE.days); setCyclePlaying(false); } else sim.set({ cycleDay: d });
+  }
+  sim.step(dt); theta = sim.theta; st = sim.state;
   metricsTimer -= dt;
-  if (sim && metricsTimer <= 0) {
-    metricsTimer = 0.25; live = sim.metrics(); onMetrics?.(live);
+  if (metricsTimer <= 0) {
+    metricsTimer = 0.25; onMetrics?.(sim.metrics());
     if (document.activeElement !== $('r-day')) syncDaySlider();
   }
 
@@ -323,15 +326,16 @@ function loop() {
     inspect.frame(dt);
     pumpjack.update(theta);
     const rp = st ? st.rodPos : rodPosition(theta);
-    const mu = live?.viscosity ?? 400;
+    const am = sim.animMetrics();                      // motion only — never displayed
+    const mu = am.viscosity;
     const mobility = Math.min(1, Math.max(0, (Math.log10(6000) - Math.log10(mu)) / (Math.log10(6000) - Math.log10(25))));
     const phase = st?.phase ?? 'PRODUCTION';
     const pxr = renderer.getPixelRatio() * window.innerHeight / 900;
-    well.update({ dt, time: elapsed, rodPos: rp, fillage: live?.fillage ?? 0.78, phase, mobility, heatedRadius: live?.heatedRadius ?? 9, steamRate: phase === 'INJECTION' ? 1 : 0, pxRatio: pxr, lightLevel: 1 - env.night * 0.7 });
+    well.update({ dt, time: elapsed, rodPos: rp, fillage: am.fillage, phase, mobility, heatedRadius: am.heatedRadius, steamRate: phase === 'INJECTION' ? 1 : 0, pxRatio: pxr, lightLevel: 1 - env.night * 0.7 });
     const hu = terrain.heatUniforms;
     hu.uNightGlow.value = env.night;
-    hu.uTPeak.value += ((live?.sandfaceT ?? 150) - hu.uTPeak.value) * Math.min(1, dt * 3);
-    hu.uRh.value += ((live?.heatedRadius ?? 9) - hu.uRh.value) * Math.min(1, dt * 3);
+    hu.uTPeak.value += (am.sandfaceT - hu.uTPeak.value) * Math.min(1, dt * 3);
+    hu.uRh.value += (am.heatedRadius - hu.uRh.value) * Math.min(1, dt * 3);
     hu.uThermal.value += ((thermalLens ? 1 : 0) - hu.uThermal.value) * Math.min(1, dt * 4);
     hu.uTime.value = elapsed;
     hu.uMob.value = mobility;
@@ -345,7 +349,7 @@ function loop() {
 }
 
 window.mantle = { THREE, scene, camera, controls, renderer, sky, pumpjack, well, terrain, section, hud, inspect, setTimeOfDay, animateTo, switchScreen, setDay, get sim() { return sim; } };
-if (sim) { syncDaySlider(); hud.update(sim.metrics()); }
+syncDaySlider(); hud.update(sim.metrics());
 syncTod();
 $('loader')?.classList.add('done');
 loop();

@@ -5,7 +5,7 @@
 // valves move, and the heated zone grows and decays as the steam cycle plays.
 import { STRATA, WELLBORE, UNIT, BLOCK, KNOTS, PIT_DEPTH, depthToY, yToDepth, unitPose, STROKE } from './rig.js';
 import { CYCLE, viscosityCp } from './sim.js';
-import { FLUID, PLAN, derive } from './mock.js';
+import { fluid, plan, derived } from './twin-data.js';
 
 const lerp = (a, b, t) => a + (b - a) * t;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -111,8 +111,8 @@ export class SectionView {
         <div class="leg" data-k="legend" hidden></div>
         <div class="tblock">
           <div class="tb-row tb-2"><div><label>Well</label>BGW-17 · Baghewala</div><div><label>Sheet</label>A–A′ · rev B</div></div>
-          <div class="tb-row tb-3"><div><label>Crude</label>${FLUID.api}° API</div><div><label>Asphaltene</label>${FLUID.asphaltene} wt%</div><div><label>Dead oil</label>${(FLUID.deadOilCp / 1000).toFixed(1)}k cP</div></div>
-          <div class="tb-row tb-3"><div><label>T res</label>${FLUID.tRes} °C</div><div><label>P res</label>${FLUID.pRes} MPa</div><div><label>PIP</label><span data-k="pip">—</span></div></div>
+          <div class="tb-row tb-3"><div><label>Crude</label><span data-k="fApi">—</span></div><div><label>Asphaltene</label><span data-k="fAsph">—</span></div><div><label>Dead oil</label><span data-k="fDead">—</span></div></div>
+          <div class="tb-row tb-3"><div><label>T res</label><span data-k="fT">—</span></div><div><label>P res</label><span data-k="fP">—</span></div><div><label>PIP</label><span data-k="pip">—</span></div></div>
         </div>
       </div>
       <div class="sec-dock">
@@ -182,7 +182,7 @@ export class SectionView {
   }
 
   action(a) {
-    const sim = this.getSim(), d = sim.metrics().cycleDay;
+    const sim = this.getSim(), d = sim.params().day;
     if (a === 'play') this.setPlaying(!this.playing);
     if (a === 'first') this.setDay(0);
     if (a === 'last') this.setDay(CYCLE.days);
@@ -304,7 +304,7 @@ export class SectionView {
     }
     const sim = this.getSim();
     if (this.playing && a.k > 0.95) {
-      const d = sim.metrics().cycleDay + dt * SPEEDS[this.speedIdx];
+      const d = sim.params().day + dt * SPEEDS[this.speedIdx];
       if (d >= CYCLE.days) { this.setDay(CYCLE.days); this.setPlaying(false); } else this.setDay(d);
     }
     if (this.zoomTo) {
@@ -313,18 +313,42 @@ export class SectionView {
       if (Math.abs(this.user.zoom - z.zoom) < 1e-3 && Math.abs(this.user.panX - z.panX) < 1e-3) this.zoomTo = null;
     }
     this.layoutNow();
-    const m = sim.metrics();
+    const m = sim.metrics();                              // API state; null until it answers
     this.draw(a.k, m, sim.state, theta);
     this.ui.style.opacity = smooth(0.7, 1, a.k);
     this.ui.style.pointerEvents = a.k > 0.95 ? 'auto' : 'none';
-    this.updateHUD(m);
-    this.drawTimeline(m, sim);
-    this.drawCard(m, sim);
-    if (this.hoverPt && a.k > 0.95) this.hover(m);
+    this.updateFluid(sim);
+    if (m) {
+      this.updateHUD(m);
+      this.drawTimeline(m, sim);
+      this.drawCard(m, sim);
+      if (this.hoverPt && a.k > 0.95) this.hover(m);
+    } else this.hudUnavailable(sim);
+  }
+
+  updateFluid(sim) {
+    const f = fluid(sim), k = this.k;
+    k.fApi.textContent = f ? `${f.api}° API` : '—';
+    k.fAsph.textContent = f ? `${f.asphaltene} wt%` : '—';
+    k.fDead.textContent = f ? `${(f.deadOilCp / 1000).toFixed(1)}k cP` : '—';
+    k.fT.textContent = f ? `${f.tRes} °C` : '—';
+    k.fP.textContent = f ? `${f.pRes} MPa` : '—';
+  }
+
+  hudUnavailable(sim) {
+    const k = this.k, off = !sim.api?.online;
+    for (const id of ['day', 't', 'rh', 'mu', 'oil', 'bat', 'pip']) k[id].textContent = '—';
+    k.phase.textContent = ''; k.now.textContent = '—';
+    k.badge.className = 'tl-badge'; k.badge.textContent = off ? 'Offline' : 'Connecting';
+    k.title.textContent = off ? 'Mantle API unavailable' : 'Connecting to the Mantle API…';
+    k.detail.textContent = off ? 'No data is shown until the backend is reachable.' : '';
+    const pill = this.ui.querySelector('.sim-pill'); if (pill) pill.textContent = off ? 'API offline' : 'Connecting';
+    for (const c of [this.track, this.cardCanvas]) { const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height); }
   }
 
   updateHUD(m) {
     const k = this.k;
+    const pill = this.ui.querySelector('.sim-pill'); if (pill && pill.textContent !== 'Simulated') pill.textContent = 'Simulated';
     k.day.textContent = m.cycleDay.toFixed(0);
     k.phase.textContent = m.phase === 'INJECTION' ? 'steaming' : m.phase === 'SOAK' ? 'soaking' : 'producing';
     k.t.textContent = m.sandfaceT.toFixed(0);
@@ -338,7 +362,8 @@ export class SectionView {
     k.title.textContent = m.phase === 'INJECTION' ? 'Steam into the sand' : m.phase === 'SOAK' ? 'Well shut in, heat spreading' : m.daysToCutoff > 0 ? 'Hot crude flowing to the pump' : 'Past the economic cut-off';
     k.detail.textContent = m.phase === 'PRODUCTION' ? `${m.oilRate.toFixed(1)} BOPD · ${m.daysToCutoff > 0 ? `${m.daysToCutoff.toFixed(0)} d to cut-off` : 're-steam now'}` : `${m.steamTons.toFixed(0)} t steam in · heated radius ${m.heatedRadius.toFixed(1)} m`;
     k.bat.textContent = `${(m.thermalBattery * 100).toFixed(0)}%`;
-    k.pip.textContent = `${derive(m, this.getSim().state).pip.toFixed(1)} MPa`;
+    const dv = derived(m);
+    k.pip.textContent = dv && Number.isFinite(dv.pip) ? `${dv.pip.toFixed(1)} MPa` : '—';
   }
 
   hover(m) {
@@ -410,12 +435,20 @@ export class SectionView {
     g.fillStyle = vg; g.fillRect(0, 0, w, h);
     this.drawGrid(g, v);
     this.drawStrata(g, v, m);
-    if (this.overlay !== 'none') this.drawField(g, v, m);
+    if (m && this.overlay !== 'none') this.drawField(g, v, m);
     this.drawSurface(g, v, theta, m);
-    this.drawWell(g, v, m, st);
+    if (m) this.drawWell(g, v, m, st);
     this.drawRuler(g, v);
-    if (this.showLabels) this.drawCallouts(g, v, m, smooth(0.6, 0.95, k));
-    if (this.showTracks) this.drawTracks(g, v, m, smooth(0.7, 1, k));
+    if (m && this.showLabels) this.drawCallouts(g, v, m, smooth(0.6, 0.95, k));
+    if (m && this.showTracks) this.drawTracks(g, v, m, smooth(0.7, 1, k));
+    if (!m && k > 0.9) {
+      const off = !this.getSim().api?.online, cx = v.X(0), cy = v.Y(-PIT_DEPTH / 2);
+      g.font = FONT(700, 13); g.textAlign = 'center';
+      const msg = off ? 'Mantle API unavailable · live data hidden' : 'Connecting to the Mantle API…';
+      const tw = g.measureText(msg).width;
+      g.fillStyle = 'rgba(241,235,223,0.92)'; g.fillRect(cx - tw / 2 - 12, cy - 16, tw + 24, 28);
+      g.fillStyle = INK(0.8); g.fillText(msg, cx, cy + 3);
+    }
     g.restore();
     // the front itself: a thin ink-blue line with a soft glow
     if (k > 0.01 && k < 0.99 && sweep < 1) {
@@ -579,10 +612,10 @@ export class SectionView {
     const wh = (y0, y1, hw) => poly([[-hw, y0], [hw, y0], [hw, y1], [-hw, y1]]);
     wh(0, 0.5, 0.42); wh(0.5, 0.95, 0.26); wh(0.95, 1.35, 0.3); wh(1.35, 1.75, 0.22); wh(1.75, 2.05, 0.14);
     line([0.3, 1.15], [1.3, 1.15], lw * 1.2); line([-0.3, 0.72], [-3.2, 0.72], lw * 1.2);
-    circ(1.0, 1.15, 0.12); circ(-1.2, 0.72, 0.12, m.phase === 'INJECTION' ? HEAT(0.8) : fillW);
+    circ(1.0, 1.15, 0.12); circ(-1.2, 0.72, 0.12, m?.phase === 'INJECTION' ? HEAT(0.8) : fillW);
     // steam / flow arrows at the wellhead
     const flowArrow = (x0, x1, y, col) => { line([x0, y], [x1, y], lw, col); const d = Math.sign(x1 - x0); g.beginPath(); g.moveTo(X(x1), Y(y)); g.lineTo(X(x1) - d * 7, Y(y) - 3.5); g.lineTo(X(x1) - d * 7, Y(y) + 3.5); g.closePath(); g.fillStyle = col; g.fill(); };
-    if (m.phase === 'INJECTION') flowArrow(-3.2, -0.6, 0.72, HEAT(0.9)); else if (m.phase === 'PRODUCTION') flowArrow(1.4, 3.4, 1.15, INK(0.8));
+    if (m?.phase === 'INJECTION') flowArrow(-3.2, -0.6, 0.72, HEAT(0.9)); else if (m?.phase === 'PRODUCTION') flowArrow(1.4, 3.4, 1.15, INK(0.8));
     // equipment silhouettes along the ground (steam generator, tanks) as light ghost outlines
     g.setLineDash([4, 3]);
     poly([[-27.5, 0], [-6.5, 0], [-6.5, 3.2], [-27.5, 3.2]], 'rgba(255,250,240,0.35)', INK(0.35), 1);
@@ -711,6 +744,8 @@ export class SectionView {
   drawTracks(g, v, m, a) {
     if (a <= 0) return;
     const prof = this.getSim().profile();
+    if (!prof) return;
+    const fl = fluid(this.getSim());
     const { X, Y } = v;
     const tx0 = X(WORLD.x1) + 34, tw = 98, gap = 10;
     const yTop = Y(0), yBot = Y(-PIT_DEPTH);
@@ -748,8 +783,10 @@ export class SectionView {
       // annulus pressure: gas cap above the fluid level, a liquid gradient below it
       plot(prof.pressure.map((b) => b / 10), fx, BLUE(0.9), 1.8);
       const yr = Y(depthToY(1120));
-      g.fillStyle = BLUE(1); g.beginPath(); g.arc(fx(FLUID.pRes), yr, 3.5, 0, 7); g.fill();
-      g.font = FONT(700, 9); g.textAlign = 'right'; g.fillText(`Pr ${FLUID.pRes}`, fx(FLUID.pRes) - 6, yr + 3);
+      if (fl) {
+        g.fillStyle = BLUE(1); g.beginPath(); g.arc(fx(fl.pRes), yr, 3.5, 0, 7); g.fill();
+        g.font = FONT(700, 9); g.textAlign = 'right'; g.fillText(`Pr ${fl.pRes}`, fx(fl.pRes) - 6, yr + 3);
+      }
     });
     g.globalAlpha = 1;
   }
@@ -761,25 +798,32 @@ export class SectionView {
     if (c.width !== w * dpr) { c.width = w * dpr; c.height = h * dpr; }
     const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
     const x0 = 8, x1 = w - 8, X = (d) => x0 + (d / CYCLE.days) * (x1 - x0);
-    const s = (this.series ||= sim.series());
-    if (this.seriesKey !== `${m.spm}|${m.kd}`) { this.series = sim.series(); this.seriesKey = `${m.spm}|${m.kd}`; }
-    const yb = h - 34, yt = 6, oMax = Math.max(...s.oilP10) * 1.05;
+    const s = (this.series = sim.series());
+    const yb = h - 34, yt = 6, oMax = s ? Math.max(...s.oilP10) * 1.05 : 1;
     g.fillStyle = 'rgba(226,96,32,0.14)'; g.fillRect(X(0), yt, X(CYCLE.injEnd) - X(0), yb - yt);
     g.fillStyle = 'rgba(214,160,20,0.16)'; g.fillRect(X(CYCLE.injEnd), yt, X(CYCLE.soakEnd) - X(CYCLE.injEnd), yb - yt);
     g.fillStyle = 'rgba(29,127,224,0.06)'; g.fillRect(X(CYCLE.soakEnd), yt, X(CYCLE.days) - X(CYCLE.soakEnd), yb - yt);
-    g.beginPath(); s.day.forEach((d, i) => (i ? g.lineTo(X(d), yb - (s.oil[i] / oMax) * (yb - yt)) : g.moveTo(X(d), yb)));
-    g.lineTo(X(CYCLE.days), yb); g.closePath(); g.fillStyle = 'rgba(42,36,27,0.08)'; g.fill();
-    g.beginPath(); s.day.forEach((d, i) => (i ? g.lineTo(X(d), yb - (s.oil[i] / oMax) * (yb - yt)) : g.moveTo(X(d), yb - (s.oil[i] / oMax) * (yb - yt))));
-    g.strokeStyle = INK(0.55); g.lineWidth = 1.3; g.stroke();
+    if (s) {
+      g.beginPath(); s.day.forEach((d, i) => (i ? g.lineTo(X(d), yb - (s.oil[i] / oMax) * (yb - yt)) : g.moveTo(X(d), yb)));
+      g.lineTo(X(CYCLE.days), yb); g.closePath(); g.fillStyle = 'rgba(42,36,27,0.08)'; g.fill();
+      g.beginPath(); s.day.forEach((d, i) => (i ? g.lineTo(X(d), yb - (s.oil[i] / oMax) * (yb - yt)) : g.moveTo(X(d), yb - (s.oil[i] / oMax) * (yb - yt))));
+      g.strokeStyle = INK(0.55); g.lineWidth = 1.3; g.stroke();
+    }
     g.font = FONT(600, 9.5); g.fillStyle = INK(0.55); g.textAlign = 'center';
     for (let d = 0; d <= CYCLE.days; d += 10) { g.fillRect(X(d) - 0.5, yb, 1, 4); if (d % 20 === 0) g.fillText(d, X(d), yb + 13); }
     // next cycle, as Mantle would run it: more steam (longer injection), longer soak, earlier cut-off
-    const py = h - 12, ph = 8, P = PLAN.mantle, inj = Math.round(CYCLE.injEnd * P.steam / PLAN.practice.steam), soak = P.soak, cut = P.cutoff || 96;
-    const seg = (d0, d1, col) => { g.fillStyle = col; g.fillRect(X(d0), py - ph / 2, Math.max(1, X(d1) - X(d0) - 1), ph); };
-    seg(0, inj, 'rgba(226,96,32,0.55)'); seg(inj, inj + soak, 'rgba(214,160,20,0.6)'); seg(inj + soak, cut, 'rgba(40,150,90,0.45)');
-    g.fillStyle = 'rgba(60,46,25,0.06)'; g.fillRect(X(cut), py - ph / 2, X(CYCLE.days) - X(cut), ph);
-    g.textAlign = 'left'; g.font = FONT(700, 8.5); g.fillStyle = 'rgba(20,110,60,0.95)';
-    g.fillText(`NEXT CYCLE · MANTLE PLAN · ${P.steam} t · soak ${soak} d · cut-off d${cut}`, X(inj + soak) + 6, py + 3);
+    const PL = plan(sim), py = h - 12, ph = 8;
+    if (PL && Number.isFinite(PL.mantle.injDays)) {
+      const P = PL.mantle, inj = P.injDays, soak = P.soak, cut = P.cutoff;
+      const seg = (d0, d1, col) => { g.fillStyle = col; g.fillRect(X(d0), py - ph / 2, Math.max(1, X(d1) - X(d0) - 1), ph); };
+      seg(0, inj, 'rgba(226,96,32,0.55)'); seg(inj, inj + soak, 'rgba(214,160,20,0.6)'); seg(inj + soak, cut, 'rgba(40,150,90,0.45)');
+      g.fillStyle = 'rgba(60,46,25,0.06)'; g.fillRect(X(cut), py - ph / 2, X(CYCLE.days) - X(cut), ph);
+      g.textAlign = 'left'; g.font = FONT(700, 8.5); g.fillStyle = 'rgba(20,110,60,0.95)';
+      g.fillText(`NEXT CYCLE · MANTLE PLAN · ${Math.round(P.steam)} t · soak ${P.soak} d · cut-off d${cut}`, X(inj + soak) + 6, py + 3);
+    } else {
+      g.textAlign = 'left'; g.font = FONT(600, 8.5); g.fillStyle = INK(0.4);
+      g.fillText('NEXT CYCLE · waiting for the planner…', X(0) + 4, py + 3);
+    }
     g.textAlign = 'left'; g.font = FONT(700, 9); g.fillStyle = '#b3470f'; g.fillText('STEAM', X(0) + 4, yt + 11);
     g.fillStyle = '#1566b5'; g.fillText('PRODUCTION', X(CYCLE.soakEnd) + 4, yt + 11);
     if (m.phase === 'PRODUCTION') { const cd = Math.min(CYCLE.days, m.cycleDay + m.daysToCutoff); g.fillStyle = 'rgba(40,150,90,0.9)'; g.fillRect(X(cd) - 0.75, yt, 1.5, yb - yt); g.font = FONT(700, 8.5); g.textAlign = cd > 100 ? 'right' : 'left'; g.fillText('cut-off', X(cd) + (cd > 100 ? -4 : 4), yb - 4); }
@@ -794,6 +838,7 @@ export class SectionView {
     if (c.width !== w * dpr) { c.width = w * dpr; c.height = h * dpr; }
     const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
     const s = this.series || sim.series();
+    if (!s) return;
     const X = (d) => 4 + (d / CYCLE.days) * (w - 8), Y = (t) => h - 12 - ((t - 40) / 200) * (h - 18);
     g.beginPath(); s.day.forEach((d, i) => (i ? g.lineTo(X(d), Y(s.T[i])) : g.moveTo(X(d), Y(s.T[i])))); g.lineTo(X(CYCLE.days), h - 12); g.lineTo(X(0), h - 12); g.closePath();
     const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, 'rgba(226,96,32,0.35)'); gr.addColorStop(1, 'rgba(226,96,32,0.02)'); g.fillStyle = gr; g.fill();

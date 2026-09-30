@@ -439,3 +439,9 @@ body.inspecting .hint-bar { opacity: 0; }
 .tb-row > div + div { border-left: 1px solid rgba(42,36,27,0.2); }
 .tb-row label { display: block; font-size: 7.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 1px; }
 .sec-legend .leg:empty { display: none; }
+
+/* API state */
+body.no-data .hud-tl .sim-pill { color: var(--muted); background: rgba(255,255,255,0.08); border-color: var(--line); }
+body.api-offline .hud-tl .sim-pill { color: #ffb4b4; background: rgba(255,107,107,0.14); border-color: rgba(255,107,107,0.4); }
+body.api-offline .brand .dot { background: var(--crit); box-shadow: 0 0 10px var(--crit); }
+body.no-data .kpi, body.no-data .card { opacity: 0.7; }

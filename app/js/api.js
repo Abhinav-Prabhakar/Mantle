@@ -1,11 +1,11 @@
 // Backend client + RemoteTwin.
 //
-// The browser keeps its local WellSim for 60 fps animation (crank angle, rod position, live load) and for
-// instant response while scrubbing. The Mantle API is authoritative for every displayed number: physics
-// metrics (identical to the local sim by construction), and everything the ML/optimiser layer adds —
-// forecast bands, dyno classification, failure risk, the pump recommendation and the next-cycle plan.
-// RemoteTwin exposes the same interface as WellSim, so the HUD and section view don't care which side
-// answered. If the API is unreachable the twin runs fully offline on the local sim + mock fixtures.
+// Every number the UI displays comes from the Mantle API: physics, the database and the ML/optimiser layer
+// (forecast bands, dyno classification, failure risk, the pump recommendation, the next-cycle plan).
+// The browser keeps a local WellSim for one job only: driving the 60 fps animation (crank angle, rod
+// position, how fast the oil particles move). Its numbers are never shown.
+// There is no fallback data: until the API answers, getters return null and the views show an explicit
+// "unavailable" state. The twin keeps probing and reconnects on its own.
 
 const TIMEOUT_MS = 2500;
 
@@ -22,7 +22,6 @@ async function fetchJson(url, opts = {}, timeout = TIMEOUT_MS) {
 // Find the API: ?api=<base> wins; then same-origin /api (nginx / Docker); then the dev server on :8000.
 export async function connectApi() {
   const params = new URLSearchParams(location.search);
-  if (params.has('offline')) return new Api(null);
   const candidates = [];
   if (params.get('api')) candidates.push(params.get('api').replace(/\/$/, ''));
   candidates.push(`${location.origin}/api`, `${location.protocol}//${location.hostname}:8000/api`);
@@ -75,7 +74,17 @@ export class RemoteTwin {
     this.pending = null; this.timer = null;
     this.status = api.online ? 'connecting' : 'offline';
     this.lastError = null;
-    if (api.online) { this.refresh('all'); this.loadStatic(); }
+    if (api.online) this.start(); else this.retry();
+  }
+
+  start() { this.status = 'connecting'; this.refresh('all'); this.loadStatic(); this.onUpdate?.('status'); }
+  // keep probing until the API is reachable, then swap it in
+  retry() {
+    clearTimeout(this.retryTimer);
+    this.retryTimer = setTimeout(async () => {
+      const api = await connectApi();
+      if (api.online) { this.api = api; this.start(); if (this._liveCb) this.openLive(this._liveCb); } else this.retry();
+    }, 4000);
   }
 
   get online() { return this.api.online && this.api.errors < 3; }
@@ -84,43 +93,41 @@ export class RemoteTwin {
   key(p = this.params()) { return `${p.day}|${p.spm}|${p.kd}|${p.steam}`; }
   curveKey(p = this.params()) { return `${p.spm}|${p.kd}|${p.steam}`; }
 
-  /* WellSim interface ------------------------------------------------ */
+  /* motion (local sim, never displayed) ------------------------------ */
   get theta() { return this.local.theta; }
   get state() { return this.local.state; }
   get _p() { return this.local._p; }
   step(dt) { this.local.step(dt); }
+  animMetrics() { return this.local.metrics(); }       // drives 3D animation only
+
   set(p) {
     this.local.set(p);
-    if (!this.api.online) return;
-    // curves only change with the operating policy; the rest with the day too
     const which = (p.spm !== undefined || p.kd !== undefined || p.steam !== undefined) ? 'all' : 'day';
-    this.schedule(which);
+    if (this.api.online) this.schedule(which);
   }
-  // metrics: local physics immediately, overlaid by the API's answer for the same scenario
+
+  /* displayed data: API only. Stale-but-real answers are kept while a newer scenario is in flight. */
   metrics() {
-    const m = this.local.metrics();
-    const r = this.fresh('state');
-    if (!r) return m;
-    if (r !== this._mergedFrom) {                         // merge once per response
+    const r = this.remote.state;
+    if (!r) return null;
+    if (r !== this._mergedFrom) {
       this._mergedFrom = r;
-      this._merged = { ...m, ...r.metrics, recommendation: r.recommendation ?? m.recommendation, alerts: r.metrics?.alerts ?? m.alerts, derived: r.derived, source: r.source };
+      this._merged = { ...r.metrics, recommendation: r.recommendation ?? r.metrics.recommendation, derived: r.derived, source: r.source, stale: false };
     }
+    this._merged.stale = this.keys.state !== this.key();
     return this._merged;
   }
-  series() { const r = this.freshCurve('series'); return r ? r : this.local.series(); }
-  profile() { const r = this.fresh('profile'); return r ? r : this.local.profile(); }
-  dynoCard(n) { const r = this.fresh('dyno'); return r && r.surface ? r : this.local.dynoCard(n); }
-
-  /* extras the local sim can't produce ------------------------------- */
-  health() { return this.fresh('health', true); }
-  plan() { return this.fresh('plan', true); }
+  series() { return this.remote.series ?? null; }
+  profile() { return this.remote.profile ?? null; }
+  dynoCard() { return this.remote.dyno && this.remote.dyno.surface ? this.remote.dyno : null; }
+  health() { return this.remote.health ?? null; }
+  plan() { return this.remote.plan ?? null; }
   pastCycles() { return this.remote.series?.pastCycles ?? null; }
   planCurve() { return this.remote.series?.planCurve ?? null; }
   well() { return this.remote.well ?? null; }
+  hasData() { return !!this.remote.state; }
 
   /* API plumbing ----------------------------------------------------- */
-  fresh(kind, loose = false) { const r = this.remote[kind]; if (!r) return null; return loose || this.keys[kind] === this.key() ? r : null; }
-  freshCurve(kind) { const r = this.remote[kind]; return r && this.keys[kind] === this.curveKey() ? r : null; }
 
   schedule(which) {
     this.pending = this.pending === 'all' || which === 'all' ? 'all' : 'day';
@@ -156,28 +163,32 @@ export class RemoteTwin {
 
   fail(e) {
     this.lastError = e;
-    if (!this.online) { this.status = 'offline'; this.onUpdate?.('status'); }
+    if (!this.online && this.status !== 'offline') { this.status = 'offline'; this.api.online = false; this.onUpdate?.('status'); this.retry(); }
   }
 
   // actions ---------------------------------------------------------
   async applyRecommendation(rec) {
-    this.set({ spm: rec.spm, kd: rec.kd });
-    if (!this.api.online) return { applied: true, offline: true };
-    try { return camel(await this.api.post(`/wells/${this.wellId}/apply`, { spm: rec.spm, kd: rec.kd })); } catch (e) { this.fail(e); return { applied: true, offline: true }; }
+    if (!this.api.online) return { applied: false, error: 'API unavailable' };
+    try {
+      const r = camel(await this.api.post(`/wells/${this.wellId}/apply`, { spm: rec.spm, kd: rec.kd }));
+      this.set({ spm: rec.spm, kd: rec.kd });
+      return r;
+    } catch (e) { this.fail(e); return { applied: false, error: String(e.message || e) }; }
   }
-  async schedulePlan(plan) {
-    if (!this.api.online) return { scheduled: true, offline: true };
-    try { return camel(await this.api.post(`/wells/${this.wellId}/plan/schedule`, plan?.mantle ?? {})); } catch (e) { this.fail(e); return { scheduled: true, offline: true }; }
+  async schedulePlan(mantle) {
+    if (!this.api.online) return { scheduled: false, error: 'API unavailable' };
+    try { return camel(await this.api.post(`/wells/${this.wellId}/plan/schedule`, mantle ?? {})); } catch (e) { this.fail(e); return { scheduled: false, error: String(e.message || e) }; }
   }
 
   // live telemetry over WebSocket (anomaly score etc.); animation still comes from the local sim
   openLive(onMsg) {
+    this._liveCb = onMsg;
     if (!this.api.online || this.ws) return;
     const url = this.api.base.replace(/^http/, 'ws') + `/wells/${this.wellId}/live`;
     try {
       this.ws = new WebSocket(url);
       this.ws.onmessage = (ev) => { try { const m = camel(JSON.parse(ev.data)); this.live = m; onMsg?.(m); } catch { /* ignore */ } };
-      this.ws.onclose = () => { this.ws = null; setTimeout(() => this.api.online && this.openLive(onMsg), 3000); };
+      this.ws.onclose = () => { this.ws = null; this.live = null; setTimeout(() => this.api.online && this.openLive(onMsg), 3000); };
     } catch { this.ws = null; }
   }
 }

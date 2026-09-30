@@ -20,7 +20,10 @@ a physics core, trained ML models, an optimiser, and an API whose shapes match w
 3. **One number, one owner.** The Python physics package is authoritative. The browser keeps a thin JS sim only
    for 60 fps animation (crank angle, rod position); every displayed metric comes from the API.
    A parity test pins JS and Python to the same golden values.
-4. **Offline-safe demo.** The frontend falls back to its local sim if the API is unreachable, and says so.
+4. **No mock data, ever.** Every number the UI shows comes from this backend (physics, database, ML). There are
+   no fixture fallbacks anywhere: if the API is unreachable the UI shows an explicit "API offline" state with
+   dashes, never invented values. The browser's JS sim only animates the machine. Constants that are genuinely
+   configuration (prices, equipment ratings) live in settings/the well master and are served by the API.
 5. **Everything reproducible.** Seeds everywhere; `uv run mantle-data build` regenerates all synthetic data;
    `uv run mantle-ml train --all` retrains every model; `docker compose up` runs the whole thing.
 
@@ -250,6 +253,16 @@ POST /api/wells/{id}/plan/schedule  {"steam","p_inj","soak","cutoff"} → {"sche
 WS   /api/wells/{id}/live  every 250 ms: {"t","theta","rod_pos","load","amps","hz","spm_actual","thp","chp","anomaly_score","anomaly_label"}
                            (client may send {"spm","kd","day"} to retarget the stream)
 ```
+
+
+**v1.1 additions (required by the no-mock UI):**
+- `/wells/{id}`: `"unit": {"model", "gearbox_rating_inlb", "stroke_m"}`, `"completion": {…, "plunger_in"}`.
+- `/state.derived.cost`: add `"revenue_day"`. All `derived` keys must come from the database/models — never from `mantle_physics.fixtures`.
+- `/health`: `"rods":[{"index","depth_m","taper","fatigue","failed"}]`, `"failure_window_months"`, `"unseats":{"months","events","hold_down_kn","details":[{"month","date","action","downtime_h"}]}`.
+- `/plan/next-cycle`: `practice.inj_days` and `mantle.inj_days` (injection duration implied by the steam volume and rate).
+- `/meta`: `"prices": {"oil_inr_bbl","steam_inr_t","power_inr_kwh"}` (planning prices, configurable).
+- `WS /live`: add `"last_stroke": {"n", "pounded", "severity"}` (the per-stroke fluid-pound event from M5 on the streamed card).
+- `/series`: `past_cycles` come from the well's recorded cycles in DuckDB, `plan_curve` from O2 + M2.
 
 Contract tests (pytest + schemathesis-style) freeze these shapes; the frontend client is typed against the
 same JSON Schema (exported from pydantic to `backend/openapi.json`).
