@@ -89,9 +89,10 @@ class Registry:
         self.m5 = m5.StrokeEstimator.load(self._d("M5"))
 
     def _load_m6(self):
-        import torch
+        if not (self._d("M6") / "ae_s3.onnx").exists():      # torch fallback only when no ONNX export exists
+            import torch
 
-        torch.set_num_threads(1)
+            torch.set_num_threads(1)
         self.m6 = m6.AnomalyDetector.load(self._d("M6"))
 
     def _load_o1(self):

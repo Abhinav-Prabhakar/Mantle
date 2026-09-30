@@ -56,4 +56,4 @@ strict = false
 warn_unused_ignores = true
 exclude = ["/tests/"]
 ignore_missing_imports = true
-files = ["packages/mantle-physics/src", "packages/mantle-data/src", "packages/mantle-ml/src"]
+files = ["packages/mantle-physics/src", "packages/mantle-data/src", "packages/mantle-ml/src", "packages/mantle-api/src"]
