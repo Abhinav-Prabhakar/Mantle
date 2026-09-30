@@ -182,7 +182,7 @@ class Registry:
     def plan_next_cycle(self, well: dict, cycle_no: int = 1, budget_s: float = 5.0, refresh: bool = False, **kw) -> dict:
         """Cached plan (from training-time ``plans.json``) if present, else computed and cached in memory."""
         wid = well.get("well_id")
-        if not refresh and wid in self.plans and "plan_curve" not in self.plans[wid]:
+        if not refresh and wid in self.plans and "plan_curve" in self.plans[wid]:
             cached = dict(self.plans[wid])
             cached["cached"] = True
             return self._stamp("O2", cached)

@@ -248,6 +248,10 @@ GET /api/wells/{id}/plan/next-cycle
                             "ranges":{"steam":[500,1200],"p_inj":[7,12],"soak":[2,10],"cutoff":[40,120]},
                             "oil_lift":0.084,"sor":[3.6,3.1],"inr_per_cycle":420000,"joint_share":160000,
                             "p10_p90":{"inr_per_cycle":[…,…]},"model":"O2"}
+                           O2 maximises net value per calendar day of a repeating cycle (cut-off, soak and steam all move the cycle length);
+                           every number is re-run on the exact twin: sor = economics.sor(steam, oil to that plan's cut-off) (the /state `sor` metric at
+                           the cut-off day), oil_lift = oil per calendar day vs practice, inr_per_cycle / joint_share = margin over one practice cycle of
+                           calendar time; also sent: per_cycle{days, oil, INR/day}, basis{…}. /series plan_curve = that plan's daily oil on the twin day axis.
 POST /api/wells/{id}/apply          {"spm","kd"} → {"applied":true,"audit_id":"…","at":"…"}
 POST /api/wells/{id}/plan/schedule  {"steam","p_inj","soak","cutoff"} → {"scheduled":true,"cycle":5,"audit_id":"…"}
 WS   /api/wells/{id}/live  every 250 ms: {"t","theta","rod_pos","load","amps","hz","spm_actual","thp","chp","anomaly_score","anomaly_label"}

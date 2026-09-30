@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from mantle_physics.constants import INJ_END, PRICE
+from mantle_physics.constants import PRICE, STEAM_RATE_T_PER_D
 
 CORS_ORIGINS = ["http://localhost:8777", "http://127.0.0.1:8777", "http://localhost:8080", "http://127.0.0.1:8080"]
 
@@ -22,7 +22,7 @@ class Settings:
     power_inr_kwh: float = PRICE["kwh"]
     chem_inr_day: float = 1800.0             # chemical treatment programme (demulsifier / scale inhibitor)
     # steam generator: rated output; injection days = steam volume / rate (14 d at the 800 t practice volume)
-    steam_rate_t_per_d: float = 800.0 / INJ_END
+    steam_rate_t_per_d: float = STEAM_RATE_T_PER_D
     # volumetrics for the recovery factor: drainage area per well and oil formation volume factor
     drainage_area_acres: float = 6.7
     bo: float = 1.05

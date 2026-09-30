@@ -277,14 +277,15 @@
       "data_hash": "71d0bef2f1a4e6c9",
       "id": "O2",
       "metrics": {
-        "coupling_dividend_inr_mean_surrogate": 720665.815047,
-        "coupling_dividend_inr_mean_twin_verified": 887325.550508,
-        "gain_vs_practice_inr_mean_surrogate": 4606131.437283,
-        "gain_vs_practice_inr_mean_twin_verified": 321417.375395,
+        "coupling_dividend_inr_mean": 50652.829417,
+        "cutoff_economic_rule_mean": 65.983333,
+        "cutoff_economic_rule_practice_mean": 68.8,
+        "cutoff_mantle_mean": 63.133333,
+        "gain_vs_practice_inr_mean_twin_verified": 8938677.287025,
         "joint_ge_sequential_all": true,
+        "m2_cum_oil_vs_twin_abs_mean": 0.672287,
         "n_wells": 60,
-        "oil_lift_mean_surrogate": -0.114189,
-        "oil_lift_mean_twin_verified": -0.073517,
+        "oil_lift_mean_twin_verified": 0.246237,
         "primary": {
           "baseline": 0.0,
           "baseline_name": "practice (L13)",
@@ -292,21 +293,25 @@
           "name": "gain_vs_practice_inr_per_cycle_twin_verified",
           "target": 0.0,
           "target_text": "> 0 (no numeric target in spec)",
-          "value": 321417.375395
+          "value": 8938677.287025
         },
         "ranges_valid_all": true,
-        "seconds_max": 2.487375,
-        "seconds_mean": 1.812252,
-        "share_wells_twin_gain_positive": 0.883333,
-        "sor_mantle_mean": 4.70025,
-        "sor_practice_mean": 5.570922
+        "reverify_oil_lift_max_abs_err": 0.0,
+        "reverify_sor_max_abs_err": 0.0,
+        "seconds_max": 1.941434,
+        "seconds_mean": 1.434054,
+        "share_wells_cutoff_moved": 1.0,
+        "share_wells_soak_moved": 1.0,
+        "share_wells_twin_gain_positive": 1.0,
+        "sor_mantle_mean": 1.922226,
+        "sor_practice_mean": 1.625476
       },
       "quick": false,
-      "size_bytes": 60139,
+      "size_bytes": 180413,
       "source": "physics_synthetic",
-      "train_seconds": 110.14,
-      "trained_at": "2026-09-30T08:31:28+00:00",
-      "version": "1.0.0"
+      "train_seconds": 86.53,
+      "trained_at": "2026-09-30T11:23:06+00:00",
+      "version": "1.1.0"
     },
     "O3": {
       "data_hash": "48609fa6a4f7342c",

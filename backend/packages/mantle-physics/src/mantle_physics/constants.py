@@ -23,6 +23,7 @@ SPM_MIN, SPM_MAX = 0.5, 15.0
 PRICE = {"oil": 6000.0, "steamT": 2800.0, "kwh": 8.0}
 GRID_CO2_KG_KWH, STEAM_CO2_T_PER_T = 0.71, 0.062
 BBL_PER_T_CWE = 6.2898
+STEAM_RATE_T_PER_D = 800.0 / INJ_END      # steam generator output: the 800 t practice volume is injected in INJ_END days
 TORQUE_RATING_INLB = 320000.0
 MU_CAP_CP = 30000.0                 # wetted-rod / emulsified cap on annulus viscosity
 KVIS = 0.26                         # effective viscosity fraction seen by the rods

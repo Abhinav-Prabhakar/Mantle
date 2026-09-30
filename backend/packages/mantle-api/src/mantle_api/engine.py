@@ -268,21 +268,20 @@ class Engine:
                 "well_id": wd.well_id, "cycle": wd.cycle_no + 1, "practice": lv(p["practice"]), "mantle": lv(p["mantle"]),
                 "ranges": snake_plan_levers(p["ranges"]), "pump": p["pump"], "oil_lift": p["oil_lift"], "sor": p["sor"],
                 "inr_per_cycle": p["inr_per_cycle"], "joint_share": p["joint_share"], "p10_p90": p["p10_p90"],
+                "per_cycle": p["per_cycle"], "basis": p["basis"],
                 "steam_rate_t_per_d": rate, "model": "O2", "version": p.get("version"), "trained_on": p.get("trained_on"),
                 "source": p.get("source", "physics_synthetic"),
             }
         return self.cache.get_or(("plan_ui", wd.well_id), lambda: clean(run()))
 
     def plan_curve(self, wd: WellData) -> dict | None:
+        """The chosen plan's daily oil on the twin's day axis (the curve O2's numbers were computed from), to its cut-off."""
         def run() -> dict:
             p = self._plan_raw(wd)
-            mt, pump = p["mantle"], p["pump"]
-            cut_actual = int(round(mt["cutoff"] + mt["soak"] - 4))
-            f = self.reg.predict_cycle(self.well_dict(wd), mt["steam"], mt["soak"], pump["spm"], pump["kd"], cut_actual,
-                                       cycle_no=wd.cycle_no + 1, p_inj=mt["pInj"], scale=self._scale(wd))
-            return {"day": f["day"], "oil": f["oil"], "oil_p10": f["oil_p90"], "oil_p90": f["oil_p10"],
-                    "cutoff": mt["cutoff"], "inj_days": mt["steam"] / self.s.steam_rate_t_per_d,
-                    "model": "O2+M2"}
+            pc, mt = p["plan_curve"], p["mantle"]
+            return {"day": pc["day"], "oil": pc["oil"], "oil_p10": pc["oil_p90"], "oil_p90": pc["oil_p10"],   # P10 = high case
+                    "cutoff": pc["cutoff"], "inj_days": mt["steam"] / self.s.steam_rate_t_per_d, "cum_oil": p["per_cycle"]["mantle_oil_bbl"],
+                    "model": "O2"}
         return clean(self.cache.get_or(("plan_curve", wd.well_id), run))
 
     # ------------------------------------------------------------------ /profile /dyno
