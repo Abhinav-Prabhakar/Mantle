@@ -93,8 +93,12 @@ def rod_failure_probability(damage0, damage_rate, days: float):
 VISC_DRAG_N_PER_PAS_MS = 8333.0   # viscous plunger drag ~ 2.5 kN at 1000 cP and 0.3 m/s
 BASE_UPLIFT_KN = 9.0              # hydrostatic + friction share of the hold-down load
 POUND_UPLIFT_KN = 8.0             # extra uplift at full fluid pound
-UNSEAT_H0 = 0.02                  # per-day hazard when uplift == hold-down capacity
+# Calibration: a heavy-oil insert pump on a mechanical hold-down unseats ~0-4 times per year (fleet mean ~0.8, worst wells
+# ~3-4). Uplift/hold-down = 1 gives 0.8 %/day; a reseat re-torques the hold-down, so a well cannot unseat again within
+# UNSEAT_LOCKOUT_DAYS of the previous event (the daily hazard does not stack on consecutive days).
+UNSEAT_H0 = 0.008                 # per-day hazard when uplift == hold-down capacity
 UNSEAT_POWER = 6.0
+UNSEAT_LOCKOUT_DAYS = 30
 
 
 def pump_uplift_kn(mu_cp, v_up, fillage, impact_vel=0.0):

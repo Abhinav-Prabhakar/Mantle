@@ -78,6 +78,16 @@ def test_pump_uplift_and_unseat_hazard_monotone():
     assert pump_unseat_hazard(18.0) > pump_unseat_hazard(18.0, hold_down_kn=30.0)
 
 
+def test_unseat_calibration_is_realistic():
+    from mantle_physics.hazard import UNSEAT_LOCKOUT_DAYS
+
+    # a healthy pump (uplift = 70 % of hold-down) held for a year unseats well under once; even at full capacity
+    # the lockout caps a well at 365 / lockout events per year (the daily hazard cannot stack on consecutive days)
+    assert 365 * pump_unseat_hazard(0.7 * 26.0, 26.0) < 0.5
+    assert pump_unseat_hazard(26.0, 26.0) <= 0.01
+    assert UNSEAT_LOCKOUT_DAYS >= 14
+
+
 def test_simulated_failures_scale_with_stress():
     rng = np.random.default_rng(0)
     assert simulate_rod_failures(rng, 0.3, SPD, 365) == []

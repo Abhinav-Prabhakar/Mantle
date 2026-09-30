@@ -1,35 +1,35 @@
 {
   "model": "O1",
   "metrics": {
-    "impacts_reduction_all_states": 0.946163,
-    "oil_change_all_states": -0.008639,
-    "impacts_reduction_pounding_states": 0.951474,
-    "oil_change_pounding_states": -0.013928,
+    "impacts_reduction_all_states": 0.945578,
+    "oil_change_all_states": -0.008655,
+    "impacts_reduction_pounding_states": 0.950889,
+    "oil_change_pounding_states": -0.013945,
     "n_pounding_states": 384,
-    "objective_gain_inr_per_day_mean": 475222.403292,
+    "objective_gain_inr_per_day_mean": 447494.185059,
     "baseline_infeasible_share": 0.94,
     "recommended_infeasible_share": 0.0,
-    "latency_ms_p50": 8.192021,
-    "latency_ms_p95": 12.89364,
+    "latency_ms_p50": 7.702979,
+    "latency_ms_p95": 11.970156,
     "n_states": 400
   },
   "primary": {
     "name": "impacts_reduction_all_states",
-    "value": 0.946163,
+    "value": 0.945578,
     "target": 0.15,
     "baseline_name": "fixed_spm (0 % by definition)",
     "baseline": 0.0,
     "direction": "higher",
     "secondary": {
       "name": "oil_change_all_states",
-      "value": -0.008639,
+      "value": -0.008655,
       "target": -0.02
     }
   },
-  "train_seconds": 3.96,
+  "train_seconds": 3.71,
   "source": "physics_synthetic",
   "version": "1.0.0",
   "data_hash": "aef049e746e89862",
   "quick": false,
-  "trained_at": "2026-09-30T08:19:28+00:00"
+  "trained_at": "2026-09-30T11:00:30+00:00"
 }

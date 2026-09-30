@@ -2,38 +2,41 @@
   "model": "M4",
   "metrics": {
     "n_cycles": 619,
-    "n_events_rod": 67,
-    "n_events_unseat": 155,
-    "rod_c_index_ml": 0.971457,
-    "rod_c_index_age_baseline": 0.467944,
-    "rod_brier_30d_ml": 0.015329,
-    "rod_brier_30d_weibull": 0.050271,
-    "rod_brier_improvement": 0.695067,
-    "unseat_c_index_ml": 0.679894,
-    "unseat_c_index_age_baseline": 0.470971,
-    "unseat_brier_30d_ml": 0.035743,
-    "unseat_brier_30d_weibull": 0.03512,
-    "unseat_brier_improvement": -0.017727,
-    "rod_top3_hit": 0.388,
+    "n_events_rod": 68,
+    "n_events_unseat": 86,
+    "rod_c_index_ml": 0.971678,
+    "rod_c_index_age_baseline": 0.454216,
+    "rod_brier_30d_ml": 0.016285,
+    "rod_brier_30d_weibull": 0.056221,
+    "rod_brier_improvement": 0.71034,
+    "unseat_c_index_ml": 0.647842,
+    "unseat_c_index_age_baseline": 0.44203,
+    "unseat_brier_30d_ml": 0.01632,
+    "unseat_brier_30d_weibull": 0.016244,
+    "unseat_brier_improvement": -0.004676,
+    "rod_top3_hit": 0.396,
     "rod_top3_random": 0.021429
   },
   "primary": {
     "name": "c_index_rod",
-    "value": 0.971457,
+    "value": 0.971678,
     "target": 0.75,
     "baseline_name": "weibull_age",
-    "baseline": 0.467944,
+    "baseline": 0.454216,
     "direction": "higher",
     "secondary": {
       "name": "brier_improvement_30d",
-      "value": 0.695067,
+      "value": 0.71034,
       "target": 0.2
     }
   },
-  "train_seconds": 7.09,
+  "notes": [
+    "Unseat model: C-index 0.65 (target 0.75) and Brier(30 d) improvement -0.00: MISSED. S5 draws a per-well hidden hold-down capacity that no covariate observes, and only the first unseat per production period is modelled."
+  ],
+  "train_seconds": 4.38,
   "source": "physics_synthetic",
   "version": "1.0.0",
-  "data_hash": "eabea3e2dc2bf162",
+  "data_hash": "385a567c04ed3224",
   "quick": false,
-  "trained_at": "2026-09-30T07:54:53+00:00"
+  "trained_at": "2026-09-30T10:57:51+00:00"
 }

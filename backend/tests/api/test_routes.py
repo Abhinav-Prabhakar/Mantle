@@ -134,6 +134,20 @@ def test_health_failures_match_database(client, engine):
     assert len(h["unseats"]["events"]) == n_un
 
 
+def test_unseat_history_is_realistic(client, engine):
+    """BGW-17 showed 35 unseats in 12 months; a heavy-oil insert pump with a mechanical hold-down sees ~0-4 a year."""
+    h = client.get(f"{W}/health").json()
+    assert len(h["unseats"]["events"]) <= 4
+    con = engine.store.con if hasattr(engine.store, "con") else None
+    if con is not None:
+        rows = con.execute(
+            "SELECT well_id, date_part('year', date) y, count(*) n FROM unseats GROUP BY 1, 2").fetchall()
+        assert rows and max(r[2] for r in rows) <= 4
+        n_un = con.execute("SELECT count(*) FROM unseats").fetchone()[0]
+        n_days = con.execute("SELECT sum(n_days) FROM cycles").fetchone()[0]
+        assert n_un / (n_days / 365.0) < 2.0                           # fleet unseats per well-year
+
+
 def test_recommend_and_plan(client):
     r = client.get(f"{W}/recommend/pump").json()
     assert r["model"] == "O1" and 0.5 <= r["spm"] <= 15

@@ -127,43 +127,43 @@
       "version": "1.0.0"
     },
     "M4": {
-      "data_hash": "eabea3e2dc2bf162",
+      "data_hash": "385a567c04ed3224",
       "id": "M4",
       "metrics": {
         "n_cycles": 619,
-        "n_events_rod": 67,
-        "n_events_unseat": 155,
+        "n_events_rod": 68,
+        "n_events_unseat": 86,
         "primary": {
-          "baseline": 0.467944,
+          "baseline": 0.454216,
           "baseline_name": "weibull_age",
           "direction": "higher",
           "name": "c_index_rod",
           "secondary": {
             "name": "brier_improvement_30d",
             "target": 0.2,
-            "value": 0.695067
+            "value": 0.71034
           },
           "target": 0.75,
-          "value": 0.971457
+          "value": 0.971678
         },
-        "rod_brier_30d_ml": 0.015329,
-        "rod_brier_30d_weibull": 0.050271,
-        "rod_brier_improvement": 0.695067,
-        "rod_c_index_age_baseline": 0.467944,
-        "rod_c_index_ml": 0.971457,
-        "rod_top3_hit": 0.388,
+        "rod_brier_30d_ml": 0.016285,
+        "rod_brier_30d_weibull": 0.056221,
+        "rod_brier_improvement": 0.71034,
+        "rod_c_index_age_baseline": 0.454216,
+        "rod_c_index_ml": 0.971678,
+        "rod_top3_hit": 0.396,
         "rod_top3_random": 0.021429,
-        "unseat_brier_30d_ml": 0.035743,
-        "unseat_brier_30d_weibull": 0.03512,
-        "unseat_brier_improvement": -0.017727,
-        "unseat_c_index_age_baseline": 0.470971,
-        "unseat_c_index_ml": 0.679894
+        "unseat_brier_30d_ml": 0.01632,
+        "unseat_brier_30d_weibull": 0.016244,
+        "unseat_brier_improvement": -0.004676,
+        "unseat_c_index_age_baseline": 0.44203,
+        "unseat_c_index_ml": 0.647842
       },
       "quick": false,
-      "size_bytes": 62904,
+      "size_bytes": 62071,
       "source": "physics_synthetic",
-      "train_seconds": 7.09,
-      "trained_at": "2026-09-30T07:54:53+00:00",
+      "train_seconds": 4.38,
+      "trained_at": "2026-09-30T10:57:51+00:00",
       "version": "1.0.0"
     },
     "M5": {
@@ -242,15 +242,15 @@
       "id": "O1",
       "metrics": {
         "baseline_infeasible_share": 0.94,
-        "impacts_reduction_all_states": 0.946163,
-        "impacts_reduction_pounding_states": 0.951474,
-        "latency_ms_p50": 8.192021,
-        "latency_ms_p95": 12.89364,
+        "impacts_reduction_all_states": 0.945578,
+        "impacts_reduction_pounding_states": 0.950889,
+        "latency_ms_p50": 7.702979,
+        "latency_ms_p95": 11.970156,
         "n_pounding_states": 384,
         "n_states": 400,
-        "objective_gain_inr_per_day_mean": 475222.403292,
-        "oil_change_all_states": -0.008639,
-        "oil_change_pounding_states": -0.013928,
+        "objective_gain_inr_per_day_mean": 447494.185059,
+        "oil_change_all_states": -0.008655,
+        "oil_change_pounding_states": -0.013945,
         "primary": {
           "baseline": 0.0,
           "baseline_name": "fixed_spm (0 % by definition)",
@@ -259,18 +259,18 @@
           "secondary": {
             "name": "oil_change_all_states",
             "target": -0.02,
-            "value": -0.008639
+            "value": -0.008655
           },
           "target": 0.15,
-          "value": 0.946163
+          "value": 0.945578
         },
         "recommended_infeasible_share": 0.0
       },
       "quick": false,
-      "size_bytes": 2529,
+      "size_bytes": 2530,
       "source": "physics_synthetic",
-      "train_seconds": 3.96,
-      "trained_at": "2026-09-30T08:19:28+00:00",
+      "train_seconds": 3.71,
+      "trained_at": "2026-09-30T11:00:30+00:00",
       "version": "1.0.0"
     },
     "O2": {

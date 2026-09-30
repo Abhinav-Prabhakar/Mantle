@@ -146,6 +146,21 @@ def test_unseats_and_workovers_consistent(tables):
         assert ids == set(src[key])
 
 
+def test_unseat_rates_are_realistic(tables):
+    """Heavy-oil insert pump on a mechanical hold-down: ~0-4 unseats per well-year, never a cluster on consecutive days."""
+    from mantle_physics.hazard import UNSEAT_LOCKOUT_DAYS
+
+    u, d = tables["unseats"].copy(), tables["cycle_daily"]
+    u["date"] = pd.to_datetime(u["date"])
+    for _, g in u.groupby("well_id"):
+        gaps = g["date"].sort_values().diff().dropna().dt.days
+        assert (gaps >= UNSEAT_LOCKOUT_DAYS).all()
+    well_years = (d["phase"] == "PRODUCTION").sum() / 365.0
+    assert len(u) / well_years < 2.0                                   # fleet mean
+    yr = u.groupby(["well_id", u["date"].dt.year]).size()
+    assert yr.max() <= 4 if len(yr) else True
+
+
 def test_telemetry_labels_align_with_injected_windows(built):
     syn = built["syn"]
     ev = pd.read_parquet(syn / "telemetry_events.parquet")

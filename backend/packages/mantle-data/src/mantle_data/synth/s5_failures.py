@@ -9,7 +9,7 @@ import pandas as pd
 
 from mantle_physics import WellSim, pump_unseat_hazard, pump_uplift_kn, simulate_rod_failures
 from mantle_physics.constants import INJ_END, S_M
-from mantle_physics.hazard import N_RODS, ROD_LENGTH_M
+from mantle_physics.hazard import N_RODS, ROD_LENGTH_M, UNSEAT_LOCKOUT_DAYS
 
 from .common import SEED, SOURCE, rng_for
 
@@ -56,6 +56,7 @@ def generate(wells: pd.DataFrame, cycles: pd.DataFrame, daily: pd.DataFrame, see
         well = well_idx.loc[wid]
         rng = rng_for(seed, "S5", int(wid.split("-")[1]))
         hold_down = float(well["hold_down_kn"])
+        last_unseat = None        # date of the well's previous unseat (a reseat blocks a repeat for UNSEAT_LOCKOUT_DAYS)
         for cyc in gc.to_dict("records"):
             rows = daily[(daily.well_id == wid) & (daily.cycle_no == cyc["cycle_no"])]
             cond = conditions(rows, cyc)
@@ -105,6 +106,9 @@ def generate(wells: pd.DataFrame, cycles: pd.DataFrame, daily: pd.DataFrame, see
             uplift = pump_uplift_kn(p["viscosity_cp"].to_numpy(), v_up, fill)
             haz = pump_unseat_hazard(uplift, hold_down)
             for i in np.flatnonzero(rng.random(len(p)) < haz):
+                if last_unseat is not None and (pd.Timestamp(p.iloc[i]["date"]) - last_unseat).days < UNSEAT_LOCKOUT_DAYS:
+                    continue
+                last_unseat = pd.Timestamp(p.iloc[i]["date"])
                 uid += 1
                 wid_ += 1
                 rig_h = float(rng.uniform(8, 24))
