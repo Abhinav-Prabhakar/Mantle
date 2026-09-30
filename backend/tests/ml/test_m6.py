@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import pytest
 
@@ -33,6 +35,15 @@ def test_zscore_masks_nan():
     assert z.shape == x.shape and not mask[:, 1].any() and np.isfinite(z).all()
 
 
+def test_zscore_scale_floor_only_applies_to_short_baselines():
+    x = np.random.default_rng(2).normal(100, 0.1, (60, 2))
+    _, _, (med, sc) = m6.zscore(x, 30)
+    _, _, (_, sc_f) = m6.zscore(x, 30, rel_floor=np.array([0.02, 0.02]))
+    assert (sc < 0.5).all() and np.allclose(sc_f, 0.02 * np.abs(med))
+    _, _, (_, sc_b) = m6.zscore(x, 30, base=(med, sc), rel_floor=np.array([0.5, 0.5]))
+    assert np.allclose(sc_b, sc)                                # a supplied baseline is used as given
+
+
 def test_m6_quick_train_and_score(ml_data, quick_models):
     ev = m6.train(quick_models, quick=True)
     assert 0 <= ev["metrics"]["f1_s3_ens"] <= 1
@@ -45,6 +56,14 @@ def test_m6_quick_train_and_score(ml_data, quick_models):
     assert r["score"].shape == (300,) and np.isnan(r["score"][: m6.L - 1]).all()
     assert np.nanmean(r["score"][205:240]) > np.nanmean(r["score"][120:190])
     assert len(r["type"]) == 300
+
+
+def test_shipped_m6_has_serving_calibration():
+    from mantle_ml import common
+
+    meta = json.loads((common.models_dir() / "M6" / "meta.json").read_text())
+    fl = meta["baseline_rel_floor"]
+    assert len(fl) == len(m6.CH_S3) and all(0 < v < 0.2 for v in fl) and 0 < meta["thr_s3"] < 1.5
 
 
 def test_shipped_m6(shipped):

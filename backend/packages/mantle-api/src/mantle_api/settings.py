@@ -30,6 +30,8 @@ class Settings:
     unseat_window_months: int = 12
     maint_window_days: int = 365
     live_period_s: float = 0.25
+    live_sim_dt_s: float = 0.25              # simulated seconds per live message (equal to the period in production)
+    live_seed: int | None = None             # sensor-noise seed (None = time-based); tests pin it
     cache_size: int = 256
     cors_origins: list[str] = field(default_factory=lambda: list(CORS_ORIGINS))
 

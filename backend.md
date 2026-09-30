@@ -251,7 +251,10 @@ GET /api/wells/{id}/plan/next-cycle
 POST /api/wells/{id}/apply          {"spm","kd"} → {"applied":true,"audit_id":"…","at":"…"}
 POST /api/wells/{id}/plan/schedule  {"steam","p_inj","soak","cutoff"} → {"scheduled":true,"cycle":5,"audit_id":"…"}
 WS   /api/wells/{id}/live  every 250 ms: {"t","theta","rod_pos","load","amps","hz","spm_actual","thp","chp","anomaly_score","anomaly_label"}
-                           (client may send {"spm","kd","day"} to retarget the stream)
+                           (client may send {"spm","kd","day"} to retarget the stream, or {"inject":{"kind":"pump_off|gas_lock|
+                           load_cell_fault|vfd_trip","duration_s":600}} to inject a sensor/process fault)
+                           anomaly_label is null unless the M6 score exceeds its calibrated threshold on 3 consecutive bins and 24 live
+                           bins have passed since (re)start; also sent: anomaly_threshold, warming_up, fault
 ```
 
 

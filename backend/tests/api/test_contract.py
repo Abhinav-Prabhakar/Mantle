@@ -42,7 +42,8 @@ LEVERS = {"steam": NUM, "pInj": NUM, "soak": NUM, "cutoff": NUM}
 WELL = {"fluid": DICT, "rods": DICT, "unit": DICT, "completion": DICT}
 FLUID = {"api": NUM, "asphaltene": NUM, "tRes": NUM, "pRes": NUM, "deadOilCp": NUM}
 LIVE = {"t": NUM, "theta": NUM, "rodPos": NUM, "load": NUM, "amps": NUM, "hz": NUM, "spmActual": NUM, "thp": NUM, "chp": NUM,
-        "anomalyScore": NUM, "anomalyLabel": STR, "lastStroke": DICT}
+        "anomalyScore": NUM, "anomalyLabel": (str, type(None)),
+        "lastStroke": DICT}                                  # anomalyLabel is null unless M6's score crosses its threshold
 META = {"dataSource": STR, "models": LIST, "sources": LIST, "prices": DICT}
 
 

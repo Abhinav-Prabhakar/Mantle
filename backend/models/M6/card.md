@@ -6,3 +6,4 @@ Shared per-channel LSTM autoencoder (hidden 16, window 24 min) + IsolationForest
 - Event F1 = predicted-event overlap with labelled events (transients + faults are events). Baseline: any-channel |z|>3 for 3 min.
 - Event typing for S3 labels via LightGBM on per-channel AE errors + window features.
 - Limits: 3W channels differ from S3 (no load/amps in 3W), so transfer is through the univariate AE only; 3W faults are slow and many are subtle, which caps recall; baseline needs a warm-up (30 min for 3W, 24 h for S3; 2 h in quick mode).
+- Live serving: the baseline scale taken from a short steady window is floored at the fleet's typical baseline variability (`baseline_rel_floor` in meta.json: 25th percentile of sd/|median| over the S3 wells; `m6_anomaly.calibrate_serving`). The live API emits a label only when the score exceeds `thr_s3` on 3 consecutive bins and 24 live bins have passed.

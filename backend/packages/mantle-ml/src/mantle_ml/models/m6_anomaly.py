@@ -39,8 +39,12 @@ GAP, MIN_RUN = 5, 3
 # ---------------------------------------------------------------- normalisation and windows
 
 
-def zscore(x: np.ndarray, n_base: int, base: tuple[np.ndarray, np.ndarray] | None = None):
-    """x (T,C) -> z (T,C) with NaN->0, mask (T,C), and the (median, scale) used."""
+def zscore(x: np.ndarray, n_base: int, base: tuple[np.ndarray, np.ndarray] | None = None, rel_floor: np.ndarray | None = None):
+    """x (T,C) -> z (T,C) with NaN->0, mask (T,C), and the (median, scale) used.
+
+    ``rel_floor`` (per channel, relative to |median|) is a lower bound on the baseline scale: the model was trained against day-long
+    baselines that contain slow drift, so a baseline taken from a short steady stretch would understate the normal variability
+    and turn ordinary sensor jitter into z-scores the model never saw in normal operation."""
     if base is None:
         seg = x[:n_base]
         with warnings.catch_warnings():
@@ -49,6 +53,8 @@ def zscore(x: np.ndarray, n_base: int, base: tuple[np.ndarray, np.ndarray] | Non
             sd = np.nanstd(seg, axis=0)
         med = np.where(np.isfinite(med), med, 0.0)
         sc = np.maximum(np.where(np.isfinite(sd), sd, 0.0), 1e-3 * np.abs(med) + 1e-6)
+        if rel_floor is not None:
+            sc = np.maximum(sc, np.asarray(rel_floor, dtype=float) * np.abs(med))
     else:
         med, sc = base
     z = (x - med) / sc
@@ -258,6 +264,41 @@ def load_3w(quick: bool) -> list[Stream]:
     return out
 
 
+def s3_minutes(well: str) -> tuple[np.ndarray, Any]:
+    """S3 telemetry of one well as per-minute bins (T, 6) [load_mean, load_std, amps, thp, chp, flow_t] and the first timestamp."""
+    cols = ["ts", "load_kn", "amps", "thp_mpa", "chp_mpa", "flowline_t_c"]
+    t = pd.read_parquet(data.telemetry_path(well), columns=cols)
+    n = len(t) // 60 * 60
+    a = {c: t[c].to_numpy(dtype=np.float64)[:n].reshape(-1, 60) for c in cols[1:]}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        x = np.stack([np.nanmean(a["load_kn"], 1), np.nanstd(a["load_kn"], 1), np.nanmean(a["amps"], 1),
+                      np.nanmean(a["thp_mpa"], 1), np.nanmean(a["chp_mpa"], 1), np.nanmean(a["flowline_t_c"], 1)], 1)
+    return x, t["ts"].iloc[0]
+
+
+def baseline_rel_floor(quick: bool, q: float = 25.0) -> list[float]:
+    """Serving calibration: per channel, the ``q``-th percentile over the S3 wells of (baseline sd / |baseline median|) with the
+    baseline taken exactly as in training. Used as a floor for baselines computed from short live windows."""
+    nb = 120 if quick else 1440
+    rel = []
+    for w in data.telemetry_wells()[: 2 if quick else None]:
+        x = s3_minutes(w)[0][:nb]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            rel.append(np.nanstd(x, axis=0) / np.maximum(np.abs(np.nanmedian(x, axis=0)), 1e-9))
+    return [float(v) for v in np.nanpercentile(np.array(rel), q, axis=0)]
+
+
+def calibrate_serving(model_root: Path, quick: bool = False) -> list[float]:
+    """(Re)compute the serving baseline floor into ``meta.json`` without retraining the networks."""
+    p = Path(model_root) / ID / "meta.json"
+    meta = json.loads(p.read_text())
+    meta["baseline_rel_floor"] = baseline_rel_floor(quick)
+    p.write_text(json.dumps(meta))
+    return meta["baseline_rel_floor"]
+
+
 def load_s3(quick: bool) -> list[Stream]:
     ev = data.events()
     out = []
@@ -265,16 +306,8 @@ def load_s3(quick: bool) -> list[Stream]:
     if quick:
         wells = wells[:2]
     nb = 120 if quick else 1440
-    cols = ["ts", "load_kn", "amps", "thp_mpa", "chp_mpa", "flowline_t_c"]
     for w in wells:
-        t = pd.read_parquet(data.telemetry_path(w), columns=cols)
-        n = len(t) // 60 * 60
-        a = {c: t[c].to_numpy(dtype=np.float64)[:n].reshape(-1, 60) for c in cols[1:]}
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            x = np.stack([np.nanmean(a["load_kn"], 1), np.nanstd(a["load_kn"], 1), np.nanmean(a["amps"], 1),
-                          np.nanmean(a["thp_mpa"], 1), np.nanmean(a["chp_mpa"], 1), np.nanmean(a["flowline_t_c"], 1)], 1)
-        t0 = t["ts"].iloc[0]
+        x, t0 = s3_minutes(w)
         yt = np.zeros(len(x), dtype=np.int8)
         ytype = np.zeros(len(x), dtype=np.int8)
         for r in ev[ev.well_id == w].itertuples():
@@ -441,7 +474,7 @@ class AnomalyDetector:
 
     def score_series(self, x: np.ndarray, base: tuple[np.ndarray, np.ndarray] | None = None, n_base: int = 120) -> dict:
         """x (T, 6) per-minute [load_mean, load_std, amps, thp, chp, flow_t] -> per-step score/flag/type arrays."""
-        z, mask, base_used = zscore(np.asarray(x, dtype=np.float64), n_base, base)
+        z, mask, base_used = zscore(np.asarray(x, dtype=np.float64), n_base, base, self.meta.get("baseline_rel_floor"))
         T = len(z)
         score = np.full(T, np.nan)
         typ = np.zeros(T, dtype=int)
@@ -547,7 +580,8 @@ def train(out_dir: Path, quick: bool = False) -> dict:
     joblib.dump(typer, d / "typer_s3.joblib", compress=3)
     meta = {"version": "1.0.0" + ("-quick" if quick else ""), "source": "real+physics_synthetic", "hidden": hid,
             "thr_s3": thr[key], "score_key": key, "channels_s3": CH_S3, "channels_3w": CH_3W, "window": L,
-            "trained_at": common.now_iso(), "data_hash": common.data_hash([str(len(s3w)), str(len(s3)), str(cap)])}
+            "trained_at": common.now_iso(), "data_hash": common.data_hash([str(len(s3w)), str(len(s3)), str(cap)]),
+            "baseline_rel_floor": baseline_rel_floor(quick)}
     (d / "meta.json").write_text(json.dumps(meta))
     f13 = met.get("f1_3w_ens")
     ev = {"metrics": met, "primary": {"name": "event_f1_3w_test", "value": f13, "target": 0.8,
@@ -562,6 +596,6 @@ Shared per-channel LSTM autoencoder (hidden {hid}, window {L} min) + IsolationFo
 - Split by well group (3W: real instances grouped by well; simulated/drawn individually): train / validation (threshold) / test. Metrics: {json.dumps(met)}
 - Event F1 = predicted-event overlap with labelled events (transients + faults are events). Baseline: any-channel |z|>3 for 3 min.
 - Event typing for S3 labels via LightGBM on per-channel AE errors + window features.
-- Limits: 3W channels differ from S3 (no load/amps in 3W), so transfer is through the univariate AE only; 3W faults are slow and many are subtle, which caps recall; baseline needs a warm-up (30 min for 3W, 24 h for S3; 2 h in quick mode).
+- Limits: 3W channels differ from S3 (no load/amps in 3W), so transfer is through the univariate AE only; 3W faults are slow and many are subtle, which caps recall; baseline needs a warm-up (30 min for 3W, 24 h for S3; 2 h in quick mode). For live serving the baseline scale taken from a short steady window is floored at the fleet's typical baseline variability (`baseline_rel_floor`, 25th percentile of sd/|median| over the S3 wells).
 """
     return common.write_eval(d, ID, ev, card)
