@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import re
+import shutil
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -31,7 +32,8 @@ EVENT_NAMES = {
     4: "flow_instability", 5: "rapid_productivity_loss", 6: "quick_pck_restriction",
     7: "pck_scaling", 8: "production_line_hydrate", 9: "service_line_hydrate",
 }
-_INST = re.compile(r"(?P<origin>WELL|SIMULATED|DRAWN)-(?P<num>\d+)_(?P<ts>\d{14})", re.I)
+MIN_FREE_BYTES = 300 * 1024 * 1024
+_INST = re.compile(r"(?P<origin>WELL|SIMULATED|DRAWN)[-_](?P<num>\d+)(?:_(?P<ts>\d{14}))?", re.I)
 
 
 def remote_size(url: str = URL, client: httpx.Client | None = None) -> int | None:
@@ -85,7 +87,8 @@ def normalise_frame(df: pd.DataFrame) -> pd.DataFrame:
         df["timestamp"] = pd.to_datetime(df["timestamp"])
     for c in df.columns:
         if c != "timestamp" and pd.api.types.is_float_dtype(df[c]):
-            df[c] = df[c].astype("float32")
+            with np.errstate(over="ignore"):
+                df[c] = df[c].astype("float32").replace([np.inf, -np.inf], np.nan)
     return df
 
 
@@ -119,6 +122,9 @@ def convert_3w(
                 ts = pd.read_parquet(dest, columns=["timestamp"])["timestamp"]
                 rows.append(_index_row(info, cls, meta.num_rows, ts, dest, base))
                 continue
+            free = shutil.disk_usage(base).free
+            if free < MIN_FREE_BYTES:
+                raise OSError(f"only {free / 1e6:.0f} MB free; stopping 3W conversion (re-run to resume)")
             df = normalise_frame(pd.read_parquet(io.BytesIO(z.read(n))))
             df["instance_id"] = info["instance_id"]
             df["event_class"] = np.int8(cls)

@@ -189,6 +189,8 @@ def test_threew_class_names_cover_all_ten_events():
     assert sorted(threew.EVENT_NAMES) == list(range(10))
     assert threew.parse_instance("dataset/1/WELL-00001_20140124213136.parquet")["origin"] == "real"
     assert threew.parse_instance("SIMULATED-00007_20180101000000.parquet")["origin"] == "simulated"
+    assert threew.parse_instance("3/SIMULATED_00007.parquet") == {"instance_id": "SIMULATED_00007", "origin": "simulated"}
+    assert threew.parse_instance("7/DRAWN_00001.parquet")["origin"] == "drawn"
 
 
 # ---------------------------------------------------------------- viscosity + volve
