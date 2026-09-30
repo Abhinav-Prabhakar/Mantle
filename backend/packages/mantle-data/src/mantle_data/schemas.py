@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-Source = Literal["real", "physics_synthetic", "llm_synthetic"]
+Source = Literal["real", "physics_synthetic"]
 FailureMode = Literal["fatigue", "float-buckling"]
 AnomalyLabel = Literal["normal", "pump_off", "gas_lock", "load_cell_fault", "tubing_leak_onset", "vfd_trip"]
 ANOMALY_LABELS: tuple[str, ...] = ("normal", "pump_off", "gas_lock", "load_cell_fault", "tubing_leak_onset", "vfd_trip")

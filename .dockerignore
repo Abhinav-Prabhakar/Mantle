@@ -17,7 +17,6 @@ nextjs-port.md
 backend/data/raw
 backend/data/processed
 backend/data/synthetic
-backend/data/llm
 backend/data/*.duckdb
 backend/data/*.duckdb.wal
 **/*.parquet

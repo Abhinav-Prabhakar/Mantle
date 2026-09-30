@@ -4,7 +4,6 @@ Unit of analysis = one production period of a cycle (time = days since productio
 first pump unseat, else censored at the last observed day). Covariates come from S2 daily rows (twin-derived Goodman,
 float margin, fillage -> impacts and impact velocity, viscosity -> uplift) plus well properties and time since the
 last workover. Baseline: Weibull on run time only. Per-rod: modified-Goodman profile -> Miner damage (mantle_physics.hazard).
-Optional LLM text features (L3/L4/L5 TF-IDF -> SVD) are appended when ``data/llm/L[345]*.jsonl`` exist.
 """
 
 from __future__ import annotations
@@ -316,16 +315,13 @@ def build_events(quick: bool) -> pd.DataFrame:
     cyc, daily, wells = data.cycles(), data.cycle_daily(), data.wells()
     cov = cycle_covariates(daily, cyc, wells, data.workovers())
     ev = event_table(cov, cyc, data.failures(), data.unseats())
-    txt = features.llm_text_features(list(wells["well_id"]))
-    if txt is not None:
-        ev = ev.merge(txt, on="well_id", how="left").fillna(0.0)
     return ev
 
 
 def train(out_dir: Path, quick: bool = False) -> dict:
     with common.timer() as tm:
         ev = build_events(quick)
-        feats = COV + [c for c in ev.columns if c.startswith("txt")]
+        feats = list(COV)
         folds = features.group_folds(ev["well_id"], 3 if quick else 5)
         met: dict = {"n_cycles": int(len(ev))}
         res: dict[str, dict] = {}
@@ -375,8 +371,7 @@ def train(out_dir: Path, quick: bool = False) -> dict:
     meta = {"version": "1.0.0" + ("-quick" if quick else ""), "source": "physics_synthetic", "features": feats,
             "trained_at": common.now_iso(), "n_cycles": int(len(ev)), "data_hash": common.data_hash([ev[COV]]),
             "defaults": {c: float(ev[c].mean()) for c in feats},
-            "ranges": {c: [float(ev[c].quantile(0.005)), float(ev[c].quantile(0.995))] for c in RANGE_COV},
-            "text_features": any(c.startswith("txt") for c in feats)}
+            "ranges": {c: [float(ev[c].quantile(0.005)), float(ev[c].quantile(0.995))] for c in RANGE_COV}}
     (d / "meta.json").write_text(json.dumps(meta))
     r = res["rod"]
     evd = {"metrics": met, "primary": {"name": "c_index_rod", "value": r["c_index_ml"], "target": 0.75,
@@ -391,7 +386,7 @@ def train(out_dir: Path, quick: bool = False) -> dict:
     card = f"""# M4 failure & unseat risk
 Gradient-boosted Cox survival models (scikit-survival) for first rod part and first pump unseat per production period, plus Miner's-rule per-rod localisation.
 **Source: physics_synthetic** (S2 covariates, S5 event histories generated from the same hazard physics; {len(ev)} production periods). Because S5 is
-simulated from the physics hazard, high C-index shows the model recovers that hazard, not real failure behaviour. Text features from LLM records: {"used" if meta["text_features"] else "not used (no data/llm L3/L4/L5 files)"}.
+simulated from the physics hazard, high C-index shows the model recovers that hazard, not real failure behaviour.
 - Covariates: {", ".join(COV)}. 5-fold CV grouped by well. Metrics: {json.dumps(met)}
 - Baseline: Weibull on run time only (Brier at 30 d) and days-since-workover as the age-only risk score (C-index; a marginal Weibull has C=0.5).
 - Per-rod: Goodman-by-depth profile x stress factor -> Miner damage rate; top rods = highest 30-day failure probability. Top-3 hit rate on S5 failures is reported but is partly circular (same physics).

@@ -62,34 +62,3 @@ def group_folds(well_ids: pd.Series, n_splits: int, seed: int = 0) -> np.ndarray
     perm = r.permutation(len(ids))
     fold_of = {ids[i]: k % n_splits for k, i in enumerate(perm)}
     return well_ids.map(fold_of).to_numpy()
-
-
-def llm_text_features(well_ids: list[str], n_components: int = 8) -> pd.DataFrame | None:
-    """Optional TF-IDF -> SVD features from LLM records (L3 rod-failure, L4 unseat, L5 workover), one row per well.
-
-    Returns None when no ``data/llm/L3*.jsonl`` / ``L4*`` / ``L5*`` files exist (the default)."""
-    import json
-
-    from mantle_data.paths import llm_dir
-
-    files = [p for pre in ("L3", "L4", "L5") for p in sorted(llm_dir().glob(f"{pre}*.jsonl"))]
-    if not files:
-        return None
-    from sklearn.decomposition import TruncatedSVD
-    from sklearn.feature_extraction.text import TfidfVectorizer
-
-    docs: dict[str, list[str]] = {w: [] for w in well_ids}
-    for p in files:
-        for line in p.read_text().splitlines():
-            if not line.strip():
-                continue
-            rec = json.loads(line)
-            rec = rec.get("record", rec)
-            w = rec.get("well_id")
-            if w in docs:
-                docs[w].append(" ".join(str(v) for v in rec.values() if isinstance(v, str)))
-    texts = [" ".join(docs[w]) or "none" for w in well_ids]
-    X = TfidfVectorizer(max_features=2000, stop_words="english").fit_transform(texts)
-    k = max(1, min(n_components, X.shape[0] - 1, X.shape[1] - 1))
-    Z = TruncatedSVD(k, random_state=0).fit_transform(X)
-    return pd.DataFrame(Z, columns=[f"txt{i}" for i in range(k)], index=well_ids).rename_axis("well_id").reset_index()

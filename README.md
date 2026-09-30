@@ -8,7 +8,7 @@
 
 <br/>
 
-![tests](https://img.shields.io/badge/tests-211%20passed-2ea44f?style=for-the-badge)
+![tests](https://img.shields.io/badge/tests-195%20passed-2ea44f?style=for-the-badge)
 ![python](https://img.shields.io/badge/python-3.12%20%C2%B7%20uv-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![fastapi](https://img.shields.io/badge/FastAPI-REST%20%2B%20WebSocket-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![three.js](https://img.shields.io/badge/Three.js-r170-000000?style=for-the-badge&logo=threedotjs&logoColor=white)
@@ -136,7 +136,7 @@ flowchart LR
   OPT --> ML
   ML --> ART
   ENG --> DDB
-  GEN["mantle-data<br/>fetch · physics synth · LLM packs"] --> PQ --> DDB
+  GEN["mantle-data<br/>fetch · physics synth"] --> PQ --> DDB
   TRAIN["mantle-ml train"] --> PQ
   TRAIN --> ART
 ```
@@ -146,7 +146,7 @@ flowchart LR
 1. **Physics first, ML second.** Marx-Langenheim / Boberg-Lantz heating, Walther viscosity, Gibbs wave equation for the rod string. ML learns residuals, classifications and risk. **Every model has a physics or practice baseline it has to beat**, and the table below shows where it does not.
 2. **One number, one owner.** The Python physics package is authoritative. The browser JS sim only animates the machine (crank angle, rod position); a parity test pins it to the Python twin.
 3. **No mock data, ever.** No fixture fallback. API unreachable means an explicit offline state.
-4. **Honest provenance.** Every record carries `source in {real, physics_synthetic, llm_synthetic}`; LLMs write records and text, physics writes anything that must obey physics.
+4. **Honest provenance.** Every record carries `source in {real, physics_synthetic}`; anything that must obey physics is written by the physics engine.
 5. **Reproducible.** Seeded everywhere; `mantle-data build`, `mantle-ml train --all` and `docker compose up` regenerate everything.
 
 ---
@@ -188,9 +188,8 @@ All figures are from [`backend/models/REPORT.md`](backend/models/REPORT.md), gen
 | | S4 dynamometer cards, 12 classes | 200,000 cards | |
 | | S5 failures / unseats / workovers | 482 / 87 / 838 | |
 | | S6 optimiser traces | 50,000 scenarios | |
-| **LLM-synthetic** | 13 record specs (rod-failure reports, unseat incidents, workover tickets, shift logs, lab reports...) as **paste-a-chat prompt packs** in [`llm-packs/`](llm-packs); specs in [`backend/packages/mantle-data/prompts`](backend/packages/mantle-data/prompts) | **none imported yet** (pipeline and validation ready) | n/a |
 
-Honesty rules: numbers that must obey physics are never LLM-generated; LLM records are schema-validated, de-duplicated and flagged `llm_synthetic`; the UI pill and `/api/meta` state the data source; raw downloads are SHA-256 pinned and the big parquet files are regenerated, not committed. Citations are in `backend/data/reference/LICENSES.md`.
+Honesty rules: the UI pill and `/api/meta` state the data source; raw downloads are SHA-256 pinned and the big parquet files are regenerated, not committed. Citations are in `backend/data/reference/LICENSES.md`.
 
 ---
 
@@ -223,7 +222,6 @@ The API image builds its DuckDB from the seeds at image build; nginx serves `app
 ```bash
 docker compose --profile data  run --rm data     # rebuild synthetic data
 docker compose --profile train run --rm train    # retrain every model
-ANTHROPIC_API_KEY=... docker compose --profile llm run --rm llm
 ```
 
 **Dev (two terminals)**
@@ -273,7 +271,7 @@ app/                       static frontend: Three.js scenes, section blueprint, 
 backend/                   uv workspace (Python 3.12)
   packages/
     mantle-physics/        pure numpy/scipy twin: reservoir, viscosity, rods, pump, dyno, hazard, economics
-    mantle-data/           fetchers, physics synthesis S1-S6, LLM pack runner, DuckDB loader, prompts/
+    mantle-data/           fetchers, physics synthesis S1-S6, DuckDB loader
     mantle-ml/             features, training, registry, ONNX inference, report
     mantle-api/            FastAPI app, live WebSocket, engine, audit store
   models/                  trained artefacts, per-model card.md, REPORT.md
@@ -281,8 +279,7 @@ backend/                   uv workspace (Python 3.12)
   tests/                   api, data, ml, physics
   openapi.json             exported API schema
 docker/                    api + web Dockerfiles, nginx.conf
-docker-compose.yml         web + api, profiles: data, train, llm
-llm-packs/                 paste-a-chat prompt packs for LLM-synthetic records
+docker-compose.yml         web + api, profiles: data, train
 assets/readme/             screenshots and GIFs used above
 backend.md                 architecture, data, models, API contract
 nextjs-port.md             brief for the planned Next.js port
@@ -292,9 +289,9 @@ nextjs-port.md             brief for the planned Next.js port
 
 ## Status and roadmap
 
-- **Working now:** three-view frontend on live backend data, ten models shipped, twin-verified planner, live stream with anomaly detection, Docker one-command run, 211 passing tests.
+- **Working now:** three-view frontend on live backend data, ten models shipped, twin-verified planner, live stream with anomaly detection, Docker one-command run, 195 passing tests.
 - **Open misses:** M3 F1 (0.939 vs 0.95), M4 unseat C-index (0.68 vs 0.75), M6 3W event F1 (0.72 vs 0.80). Documented in the model cards, tracked as xfail tests.
-- **Planned:** Next.js + TypeScript port of the frontend (spec in `nextjs-port.md`), then a performance pass; import the LLM-synthetic packs to feed M4 text features and the practice baselines; fine-tune on real Baghewala data when Oil India can share it, which is the honest path from twin-validated to field-validated.
+- **Planned:** Next.js + TypeScript port of the frontend (spec in `nextjs-port.md`), then a performance pass; fine-tune on real Baghewala data when Oil India can share it, which is the honest path from twin-validated to field-validated.
 - **Known limits:** Baghewala data is not public, so the twin is calibrated to published field ranges; all wells are simulated; licence still to be decided.
 
 ---

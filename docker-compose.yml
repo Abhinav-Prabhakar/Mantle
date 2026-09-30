@@ -1,7 +1,6 @@
 # docker compose up            -> http://localhost:8080 (web + api)
 # docker compose --profile data run --rm data     rebuild the synthetic database into the mantle-data volume
 # docker compose --profile train run --rm train   retrain every model (torch image)
-# ANTHROPIC_API_KEY=... docker compose --profile llm run --rm llm   LLM synthetic-record runner
 name: mantle
 
 services:
@@ -40,15 +39,6 @@ services:
     build: { context: ., dockerfile: docker/api.Dockerfile, target: train }
     image: mantle-train:latest
     volumes: [ "mantle-data:/var/mantle" ]
-
-  llm:
-    profiles: ["llm"]
-    image: mantle-api:latest
-    build: { context: ., dockerfile: docker/api.Dockerfile, target: api }
-    environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-    volumes: [ "mantle-data:/var/mantle" ]
-    command: ["mantle-data", "llm", "run", "${LLM_SPEC:-L3_rod_failure_report}", "--n", "${LLM_N:-20}"]
 
 volumes:
   mantle-data:
