@@ -56,7 +56,7 @@ def generate(wells: pd.DataFrame, cycles: pd.DataFrame, daily: pd.DataFrame, see
     for wid, gc in cycles.groupby("well_id"):
         well = well_idx.loc[wid]
         rng = rng_for(seed, "S5", int(wid.split("-")[1]))
-        hold_down = 22.0 * (0.85 + 0.3 * (zlib.crc32(wid.encode()) % 100) / 100)
+        hold_down = 26.0 * (0.85 + 0.3 * (zlib.crc32(wid.encode()) % 100) / 100)
         for cyc in gc.to_dict("records"):
             rows = daily[(daily.well_id == wid) & (daily.cycle_no == cyc["cycle_no"])]
             cond = conditions(rows, cyc)
