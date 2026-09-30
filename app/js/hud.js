@@ -15,13 +15,13 @@ const FONT = '500 10px Inter, sans-serif';
 const DASH = '—';
 const num = (v) => typeof v === 'number' && Number.isFinite(v);
 
-export const inr = (v) => {
+export const inr = (v, sym = true) => {
   if (!num(v)) return DASH;
-  const a = Math.abs(v), s = v < 0 ? '−' : '';
-  if (a >= 1e7) return `${s}₹${(a / 1e7).toFixed(2)} Cr`;
-  if (a >= 1e5) return `${s}₹${(a / 1e5).toFixed(2)} L`;
-  if (a >= 1e3) return `${s}₹${(a / 1e3).toFixed(1)}k`;
-  return `${s}₹${a.toFixed(0)}`;
+  const a = Math.abs(v), s = v < 0 ? '−' : '', p = sym ? '₹' : '';
+  if (a >= 1e7) return `${s}${p}${(a / 1e7).toFixed(2)} Cr`;
+  if (a >= 1e5) return `${s}${p}${(a / 1e5).toFixed(2)} L`;
+  if (a >= 1e3) return `${s}${p}${(a / 1e3).toFixed(1)}k`;
+  return `${s}${p}${a.toFixed(0)}`;
 };
 const pct = (v) => (num(v) ? `${(v * 100).toFixed(0)}` : DASH);
 const k1 = (v) => (num(v) ? (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(0)) : DASH);
@@ -243,7 +243,7 @@ export class Hud {
     dot.classList.toggle('steam', m.phase === 'INJECTION'); dot.classList.toggle('soak', m.phase === 'SOAK');
 
     // value + cost anatomy
-    $('v-net').textContent = inr(m.netPerDay);
+    $('v-net').textContent = inr(m.netPerDay, false);
     const dl = $('v-delta'); dl.className = 'delta';
     const c = d?.cost;
     if (!prod) dl.textContent = m.phase === 'INJECTION' ? 'steaming' : 'soaking';
