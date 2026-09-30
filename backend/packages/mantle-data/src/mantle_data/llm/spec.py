@@ -82,7 +82,7 @@ def _build_model(spec: Spec) -> type[BaseModel]:
         t = f["type"]
         kw: dict[str, Any] = {}
         if t.startswith("list["):
-            typ: Any = list[py[t[5:-1]]]  # type: ignore[valid-type]
+            typ: Any = list[py[t[5:-1]]]  # type: ignore[misc]
             if "min_items" in f:
                 kw["min_length"] = f["min_items"]
             if "max_items" in f:
@@ -126,8 +126,12 @@ def load_spec(path: Path) -> Spec:
 
 @lru_cache(maxsize=1)
 def _all() -> dict[str, Spec]:
+    def order(path: Path) -> int:
+        m = re.match(r"L(\d+)_", path.name)
+        return int(m.group(1)) if m else 0
+
     specs = {}
-    for p in sorted(prompts_dir().glob("L*_*.yaml"), key=lambda p: int(re.match(r"L(\d+)_", p.name).group(1))):
+    for p in sorted(prompts_dir().glob("L*_*.yaml"), key=order):
         s = load_spec(p)
         specs[s.id] = s
     return specs

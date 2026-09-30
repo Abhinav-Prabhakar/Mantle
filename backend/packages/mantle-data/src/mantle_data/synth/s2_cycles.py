@@ -40,7 +40,7 @@ def build_cycle(well: dict, cycle_no: int, start: date, p: dict, last_day: int |
     a_p = INJ_END + soak
     planned_last = int(round(a_p + (cutoff_twin - SOAK_END)))
     complete = last_day is None
-    last = planned_last if complete else min(last_day, planned_last)
+    last = planned_last if last_day is None else min(last_day, planned_last)
     a = np.arange(0, last + 1)
     d = twin_day(a, soak)
     ax = np.arange(CYCLE_DAYS + 1)
@@ -143,9 +143,9 @@ def generate(wells: pd.DataFrame, scale: str | Scale = "default", seed: int = SE
     for wid in sorted(chosen):
         well = wells[wells.well_id == wid].iloc[0].to_dict()
         if wid == SHOWCASE_ID:
-            r, d = _showcase(well)
-            rows += r
-            dfs += d
+            sc_rows, sc_dfs = _showcase(well)
+            rows += sc_rows
+            dfs += sc_dfs
             continue
         rng = rng_for(seed, "S2", int(wid.split("-")[1]))
         n_done = int(rng.integers(sc.cycles[0], sc.cycles[1] + 1))

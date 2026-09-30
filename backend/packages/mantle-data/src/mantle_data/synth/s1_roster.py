@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from datetime import date, timedelta
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -51,7 +52,7 @@ def generate(scale: str | Scale = "default", seed: int = SEED) -> pd.DataFrame:
         perf_top = float(rng.uniform(1085, 1125))
         visc_f = float(np.exp(rng.normal(0, 0.15)))
         pi = float((perm / 1800) ** 0.25 * (pay / 40) ** 0.6 * np.exp(rng.normal(0, 0.12)))
-        row = {
+        row: dict[str, Any] = {
             "well_id": wid, "name": f"Baghewala {wid}",
             "spud_date": date(2011, 1, 1) + timedelta(days=int(rng.integers(0, 3800))),
             "depth_m": perf_top + pay + float(rng.uniform(15, 35)),

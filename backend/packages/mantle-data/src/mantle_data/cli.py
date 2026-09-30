@@ -37,11 +37,11 @@ def _fetch(which: str, convert: bool) -> None:
         p = weather.fetch_weather()
         typer.echo(f"weather -> {p}")
     if which in ("viscosity", "all"):
-        p = viscosity.fetch_viscosity()
-        typer.echo(f"viscosity -> {p}")
+        vs = viscosity.fetch_viscosity()
+        typer.echo(f"viscosity -> {vs}")
     if which in ("volve", "all"):
-        p = volve.load_volve()
-        typer.echo(f"volve -> {p}")
+        vp = volve.load_volve()
+        typer.echo(f"volve -> {vp}")
     if which in ("3w", "all"):
         z = threew.fetch_3w(progress=_progress())
         typer.echo(f"3w zip -> {z}")

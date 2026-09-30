@@ -34,9 +34,10 @@ class AnthropicProvider:
         self.client = anthropic.Anthropic(api_key=key)
 
     def complete(self, system, user, model, max_tokens=2048, temperature=1.0) -> Completion:
-        r = self.client.messages.create(model=model, max_tokens=max_tokens, temperature=temperature, system=system,
+        # no ``temperature``: recent Claude models fix sampling parameters server-side
+        r = self.client.messages.create(model=model, max_tokens=max_tokens, system=system,
                                         messages=[{"role": "user", "content": user}])
-        text = "".join(b.text for b in r.content if getattr(b, "type", "") == "text")
+        text = "".join(getattr(b, "text", "") for b in r.content if getattr(b, "type", "") == "text")
         return Completion(text, r.usage.input_tokens, r.usage.output_tokens)
 
 

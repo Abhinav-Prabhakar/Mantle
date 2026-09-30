@@ -34,6 +34,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests", "packages"]
 addopts = "-ra --import-mode=importlib"
+markers = ["network: hits the real network (skipped unless --run-network)"]
 filterwarnings = ["error::RuntimeWarning"]
 
 [tool.ruff]
@@ -52,5 +53,6 @@ ignore = ["E501", "N802", "N803", "N806", "N815", "N816", "E741", "B905", "SIM10
 python_version = "3.12"
 strict = false
 warn_unused_ignores = true
+exclude = ["/tests/"]
 ignore_missing_imports = true
-files = ["packages/mantle-physics/src"]
+files = ["packages/mantle-physics/src", "packages/mantle-data/src"]

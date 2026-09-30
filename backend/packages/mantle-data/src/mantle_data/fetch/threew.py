@@ -63,10 +63,10 @@ def fetch_3w(progress: Progress | None = None, verify: bool = True) -> Path:
     return dest
 
 
-def parse_instance(name: str) -> dict | None:
+def parse_instance(name: str) -> dict:
     stem = Path(name).stem
     m = _INST.search(stem)
-    origin = m.group("origin").lower() if m else "unknown"
+    origin = {"well": "real"}.get(m.group("origin").lower(), m.group("origin").lower()) if m else "unknown"
     return {"instance_id": stem, "origin": origin}
 
 
@@ -111,6 +111,7 @@ def convert_3w(
             members = members[:limit]
         for n in members:
             cls = _class_of(n)
+            assert cls is not None
             info = parse_instance(n)
             dest = base / f"class={cls}" / f"{info['instance_id']}.parquet"
             if dest.exists():
@@ -123,7 +124,7 @@ def convert_3w(
             df["event_class"] = np.int8(cls)
             dest.parent.mkdir(exist_ok=True)
             tmp = dest.with_suffix(".tmp")
-            df.to_parquet(tmp, index=False, compression="zstd")
+            df.to_parquet(tmp, index=False, compression="zstd", compression_level=9)
             tmp.rename(dest)
             rows.append(_index_row(info, cls, len(df), df["timestamp"], dest, base))
     idx = pd.DataFrame(rows)

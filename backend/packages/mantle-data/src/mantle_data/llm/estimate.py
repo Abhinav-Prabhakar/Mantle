@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 from .runner import render_prompts
 from .sampling import Context
@@ -24,7 +25,7 @@ def estimate(spec_key: str = "all", n: int | None = None, model: str = "claude-s
     ctx = context or Context.load()
     keys = list(load_specs()) if spec_key.lower() == "all" else [get_spec(spec_key).id]
     p_in, p_out = prices()
-    rows = []
+    rows: list[dict[str, Any]] = []
     for k in keys:
         spec = get_spec(k)
         calls = n or spec.suggested_n

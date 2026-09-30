@@ -60,7 +60,7 @@ def load(synthetic: Path | None = None, processed: Path | None = None, path: Pat
                     f"CREATE OR REPLACE VIEW {name} AS SELECT * FROM read_parquet({_q(base / pattern)}{extra})"
                 )
         for (t,) in con.execute("SELECT table_name FROM information_schema.tables").fetchall():
-            counts[t] = con.execute(f'SELECT count(*) FROM "{t}"').fetchone()[0]
+            counts[t] = int(con.execute(f'SELECT count(*) FROM "{t}"').fetchone()[0])  # type: ignore[index]
     finally:
         con.close()
     return counts
@@ -69,7 +69,7 @@ def load(synthetic: Path | None = None, processed: Path | None = None, path: Pat
 def stats(path: Path | str | None = None) -> dict[str, int]:
     con = connect(path, read_only=True)
     try:
-        return {t: con.execute(f'SELECT count(*) FROM "{t}"').fetchone()[0]
+        return {t: int(con.execute(f'SELECT count(*) FROM "{t}"').fetchone()[0])  # type: ignore[index]
                 for (t,) in con.execute("SELECT table_name FROM information_schema.tables ORDER BY 1").fetchall()}
     finally:
         con.close()
@@ -111,7 +111,7 @@ class MantleDB:
         return self._df("SELECT * FROM failures WHERE well_id = ? ORDER BY date", well_id)
 
     def as_of(self, well_id: str) -> date:
-        r = self.con.execute("SELECT max(date) FROM cycle_daily WHERE well_id = ?", [well_id]).fetchone()[0]
+        r = self.con.execute("SELECT max(date) FROM cycle_daily WHERE well_id = ?", [well_id]).fetchone()[0]  # type: ignore[index]
         return r if r is not None else date.today()
 
     def unseats(self, well_id: str, months: int = 12, as_of: date | None = None) -> pd.DataFrame:

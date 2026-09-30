@@ -114,13 +114,17 @@ def run(spec_key: str, n: int, model: str = "claude-sonnet-5-5", provider: str |
     dd = Deduper()
     for r in done:
         dd.add(record_text(r["record"]))
+    for fp in (path, rej_path):     # an interrupted run may leave a torn last line: start a fresh one
+        if fp.exists() and fp.stat().st_size and not fp.read_bytes().endswith(b"\n"):
+            with open(fp, "a") as f:
+                f.write("\n")
     pending = [i for i in range(n) if i not in seen_idx]
-    stats = {"spec": spec.id, "requested": n, "already_done": len(seen_idx & set(range(n))), "generated": 0,
+    stats: dict[str, Any] = {"spec": spec.id, "requested": n, "already_done": len(seen_idx & set(range(n))), "generated": 0,
              "invalid": 0, "duplicates": 0, "input_tokens": 0, "output_tokens": 0, "path": str(path)}
     lock = threading.Lock()
-    prompts = {i: render_prompts(spec, 1, ctx, seed, start=i)[0] for i in pending}
+    by_idx = {i: render_prompts(spec, 1, ctx, seed, start=i)[0] for i in pending}
     with open(path, "a") as f_ok, open(rej_path, "a") as f_rej, ThreadPoolExecutor(max(1, concurrency)) as ex:
-        futs = {ex.submit(_call, prov, spec, prompts[i], model, temperature): i for i in pending}
+        futs = {ex.submit(_call, prov, spec, by_idx[i], model, temperature): i for i in pending}
         for fut in as_completed(futs):
             i = futs[fut]
             res = fut.result()
@@ -139,7 +143,7 @@ def run(spec_key: str, n: int, model: str = "claude-sonnet-5-5", provider: str |
                     f_rej.flush()
                 else:
                     stats["generated"] += 1
-                    f_ok.write(json.dumps({**base, "variables": prompts[i]["variables"], "record": res["record"],
+                    f_ok.write(json.dumps({**base, "variables": by_idx[i]["variables"], "record": res["record"],
                                            "source": "llm_synthetic"}) + "\n")
                     f_ok.flush()
     return stats

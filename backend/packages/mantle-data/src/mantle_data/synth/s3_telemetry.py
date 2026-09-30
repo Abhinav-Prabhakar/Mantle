@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -36,7 +37,7 @@ class Waveform:
     t: np.ndarray
     load: np.ndarray
     pos: np.ndarray
-    metrics: object
+    metrics: Any
     derived: dict
 
 
