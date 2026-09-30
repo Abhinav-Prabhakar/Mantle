@@ -94,7 +94,7 @@ export class SectionView {
     const ui = document.createElement('div'); ui.className = 'sec-ui'; this.ui = ui;
     ui.innerHTML = `
       <div class="sec-hud">
-        <div class="brand"><span class="dot"></span>MANTLE <em>Well section</em><span class="sim-pill">Simulated</span></div>
+        <div class="brand"><span class="dot"></span>MANTLE <em>Well section</em></div>
         <h1>A–A′<small>BGW-17 · looking north</small></h1>
         <div class="sub">True-scale reservoir · overburden compressed · heat from the live cycle</div>
         <div class="sec-stats">
@@ -342,13 +342,11 @@ export class SectionView {
     k.badge.className = 'tl-badge'; k.badge.textContent = off ? 'Offline' : 'Connecting';
     k.title.textContent = off ? 'Mantle API unavailable' : 'Connecting to the Mantle API…';
     k.detail.textContent = off ? 'No data is shown until the backend is reachable.' : '';
-    const pill = this.ui.querySelector('.sim-pill'); if (pill) pill.textContent = off ? 'API offline' : 'Connecting';
     for (const c of [this.track, this.cardCanvas]) { const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height); }
   }
 
   updateHUD(m) {
     const k = this.k;
-    const pill = this.ui.querySelector('.sim-pill'); if (pill && pill.textContent !== 'Simulated') pill.textContent = 'Simulated';
     k.day.textContent = m.cycleDay.toFixed(0);
     k.phase.textContent = m.phase === 'INJECTION' ? 'steaming' : m.phase === 'SOAK' ? 'soaking' : 'producing';
     k.t.textContent = m.sandfaceT.toFixed(0);

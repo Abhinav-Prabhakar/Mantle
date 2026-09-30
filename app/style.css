@@ -283,9 +283,6 @@ body.mode-section .screen-switch .glider { background: rgba(255,255,255,0.95); b
 @media (prefers-reduced-motion: reduce) { .brand .dot { animation: none; } }
 
 /* =================================================================== v2 additions */
-/* provenance */
-.sim-pill { margin-left: 4px; font-size: 8.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; color: #ffd9a8; background: rgba(240,160,75,0.14); border: 1px solid rgba(240,160,75,0.35); pointer-events: auto; cursor: help; text-shadow: none; }
-.sec-hud .sim-pill { color: #b3470f; background: rgba(226,96,32,0.1); border-color: rgba(226,96,32,0.3); }
 
 /* value card: net per day + a cost-anatomy dropdown on hover */
 .value-panel { flex-direction: column; align-items: stretch; gap: 0; z-index: 3; }
@@ -441,7 +438,5 @@ body.inspecting .hint-bar { opacity: 0; }
 .sec-legend .leg:empty { display: none; }
 
 /* API state */
-body.no-data .hud-tl .sim-pill { color: var(--muted); background: rgba(255,255,255,0.08); border-color: var(--line); }
-body.api-offline .hud-tl .sim-pill { color: #ffb4b4; background: rgba(255,107,107,0.14); border-color: rgba(255,107,107,0.4); }
 body.api-offline .brand .dot { background: var(--crit); box-shadow: 0 0 10px var(--crit); }
 body.no-data .kpi, body.no-data .card { opacity: 0.7; }

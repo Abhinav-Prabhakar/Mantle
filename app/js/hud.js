@@ -79,7 +79,6 @@ const KPIS = [
 
 // tooltips: (m, live, d, ctx) — any of them may be null
 const TIPS = {
-  sim: (m, live, d, c) => { const p = c.prov; return `<b>${p.mode === 'live' ? 'Simulated field data' : 'Mantle API unavailable'}</b><br>${p.label}${p.sources ? `<br><span class="mut">Sources: ${p.sources}</span>` : ''}${p.mode === 'live' ? '<br><span class="mut">Physics-synthetic field records; swap in historian feeds without changing the UI.</span>' : ''}`; },
   spm: (m, live) => `<b>Pumping speed</b><br>${fx(live?.spmActual)} strokes per minute${m ? ` (set ${fx(m.spm)})` : ''}.<br><span class="mut">The unit parks at top of stroke during injection and soak.</span>`,
   stroke: (m) => `<b>Stroke length</b><br>${fx(m?.stroke, 2)} m polished-rod travel.<br><span class="mut">Longer stroke at lower SPM lifts the same fluid with fewer impacts.</span>`,
   vfd: (m, live) => `<b>VFD output</b><br>${fx(live?.hz)} Hz · speed profile shaped for the downstroke${m ? ` (kd ${fx(m.kd, 2)})` : ''}.`,
@@ -205,8 +204,6 @@ export class Hud {
     this.ctx.prov = provenance(sim);
     const msg = this.ctx.prov.mode === 'offline' ? 'Mantle API unavailable' : 'Connecting to the Mantle API…';
     document.body.classList.toggle('no-data', true);
-    const pill = document.querySelector('.hud-tl .sim-pill');
-    if (pill) pill.textContent = this.ctx.prov.mode === 'offline' ? 'API offline' : 'Connecting';
     document.body.classList.toggle('api-offline', this.ctx.prov.mode === 'offline');
     for (const id of ['t-spm', 't-stroke', 't-hz', 't-amps', 't-load', 'v-net', 'ring-day', 's-battery', 's-cum', 's-cutoff']) $(id).textContent = DASH;
     $('phase-sub').textContent = msg;
@@ -231,8 +228,6 @@ export class Hud {
     this.ctx.prov = provenance(sim);
     if (!m) { this.m = null; this.unavailable(); return; }
     document.body.classList.remove('no-data', 'api-offline');
-    const pill = document.querySelector('.hud-tl .sim-pill');
-    if (pill) pill.textContent = 'Simulated';
     this.m = m;
     this.ctx.fluid = fluid(sim);
     const d = (this.d = derived(m));
