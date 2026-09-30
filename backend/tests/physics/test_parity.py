@@ -7,7 +7,6 @@ import math
 import pytest
 
 from mantle_physics import rig
-from mantle_physics.derived import derive
 from mantle_physics.twin import WellSim
 from mantle_physics.viscosity import viscosity_cp
 
@@ -62,8 +61,7 @@ def test_scenarios(oracle):
         compare(sc["profile"], sim.profile().to_json(), tag + ".profile")
         compare(sc["dyno"]["n180"], sim.dyno_card(180).to_json(), tag + ".dyno180")
         compare(sc["dyno"]["n12"], sim.dyno_card(12).to_json(), tag + ".dyno12")
-        compare(sc["derived"], derive(m, sim.state), tag + ".derived")
-        compare(sc["derivedNoState"], derive(m, None), tag + ".derivedNoState")
+        # derive() no longer exists in the browser (mock.js was removed); it is served by the API
 
 
 def test_stateful_sequence(oracle):

@@ -8,7 +8,6 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const appJs = path.resolve(here, '../../../app/js');
 const { WellSim, CYCLE, viscosityCp } = await import(pathToFileURL(path.join(appJs, 'sim.js')).href);
 const rig = await import(pathToFileURL(path.join(appJs, 'rig.js')).href);
-const { derive } = await import(pathToFileURL(path.join(appJs, 'mock.js')).href);
 
 const scenarios = [];
 const add = (s) => scenarios.push(s);
@@ -41,8 +40,6 @@ for (const sc of scenarios) {
   out.scenarios.push({
     input: sc, state0: st0, state: JSON.parse(JSON.stringify(sim.state)), theta: sim.theta,
     metrics: m, series: sim.series(), profile: sim.profile(), dyno: { n180: sim.dynoCard(180), n12: sim.dynoCard(12) },
-    derived: derive(m, sim.state),
-    derivedNoState: derive(m, undefined),
   });
 }
 
