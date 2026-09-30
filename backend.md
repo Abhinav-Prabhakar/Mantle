@@ -285,15 +285,34 @@ same JSON Schema (exported from pydantic to `backend/openapi.json`).
 
 ---
 
-## 8. Docker
+## 8. Run it
 
-- `api` image: `python:3.12-slim` + uv; `uv sync --frozen --no-dev`; models baked in; `uvicorn mantle_api.main:app`.
-- `web` image: nginx serving `app/` (later the Next.js build), proxying `/api` → `api:8000` (same origin, no CORS).
-- `docker compose up` → http://localhost:8080. Profiles: `--profile data` (build synthetic data),
-  `--profile train` (retrain models), `--profile llm` (LLM synth run; needs `ANTHROPIC_API_KEY`).
-- Healthchecks on both; the web container waits for the API.
+**Dev (two terminals)**
 
----
+```bash
+cd backend && uv run mantle-api                 # API on http://127.0.0.1:8000/api  (docs: /docs)
+cd app && python3 -m http.server 8777           # the Well View; it finds the API on :8000 (CORS allows :8777)
+```
+
+First time: `cd backend && uv sync && uv run mantle-data build --only S1,S2,S5` creates `data/mantle.duckdb`
+(models are committed; retrain with `uv run mantle-ml train --all`). `uv run python -m mantle_api.export_openapi`
+rewrites `backend/openapi.json` (a test fails if it is stale). Checks: `uv run ruff check && uv run mypy packages && uv run pytest -q`.
+
+**Docker**
+
+```bash
+docker compose up                       # http://localhost:8080  (nginx serves app/, proxies /api incl. the live WebSocket)
+docker compose --profile data run --rm data     # rebuild the synthetic database into the mantle-data volume
+docker compose --profile train run --rm train   # retrain all models (torch image, separate target)
+ANTHROPIC_API_KEY=... docker compose --profile llm run --rm llm   # LLM record runner (LLM_SPEC, LLM_N env)
+docker compose down [-v]
+```
+
+- `api` image: `python:3.12-slim` + uv, `uv sync --frozen --no-dev --package mantle-api` (no torch: M3/M6 are served with
+  onnxruntime), committed models copied in, and the synthetic database **built inside the image** from the seeds
+  (`mantle-data build --only S1,S2,S5`). On first start the database is copied into the `mantle-data` volume, so the
+  audit log (`/apply`, `/plan/schedule`) survives restarts. Healthcheck: `/api/health`.
+- `web` image: nginx serving `app/`; the client's same-origin `/api` probe works with no configuration. `web` waits for `api` to be healthy.
 
 ## 9. Build sequence (each step ends with tests green + commit + push)
 

@@ -127,7 +127,7 @@ def meta(e: Eng) -> dict:
     s = e.s
     sources = [{"id": "physics-synthetic", "kind": "physics_synthetic",
                 "name": "Physics-twin synthetic field records (S1 roster, S2 cycles, S5 failures)", "licence": "generated"}]
-    sources += [v for t, v in SOURCES.items() if e.store.table_count(t) > 0]
+    sources += [{**v, "in_database": e.store.table_count(t) > 0} for t, v in SOURCES.items()]
     models = [{"id": r["id"], "loaded": r["loaded"], "version": r["version"], "trained_at": r["trained_at"],
                "source": r["source"], "trained_on": r["data_hash"], "metrics": r["metrics"]} for r in e.reg.describe()]
     gen = datetime.fromtimestamp(s.db_path.stat().st_mtime).isoformat(timespec="seconds") if s.db_path.exists() else None
