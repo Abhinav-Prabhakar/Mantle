@@ -138,7 +138,7 @@ class ViscosityModel:
         Ta = np.atleast_1d(np.asarray(T, dtype=float))
         X = pd.DataFrame({"T": Ta, "api": api, "asph": asph, "resin": resin, "wat": wat, "wA": A, "wB": B})
         mw = walther(Ta, A, B)
-        mu = mw * 10 ** self.booster.predict(X[FEATS])
+        mu = mw * 10 ** np.asarray(self.booster.predict(X[FEATS]))
         scalar = np.ndim(T) == 0
         return {"mu_cp": float(mu[0]) if scalar else mu, "mu_walther_cp": float(mw[0]) if scalar else mw,
                 "model": ID, "version": self.meta["version"], "source": self.meta["source"]}

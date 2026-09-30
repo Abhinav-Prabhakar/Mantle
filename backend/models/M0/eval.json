@@ -27,11 +27,11 @@
     ],
     "inside": true
   },
-  "train_seconds": 1.77,
+  "train_seconds": 1.62,
   "source": "physics_synthetic",
   "version": "1.0.0",
   "data_hash": "af8a6641bcaefb54",
   "n_rows": 6000,
   "quick": false,
-  "trained_at": "2026-09-30T07:44:45+00:00"
+  "trained_at": "2026-09-30T07:47:32+00:00"
 }

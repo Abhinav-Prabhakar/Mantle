@@ -21,8 +21,73 @@
       "quick": false,
       "size_bytes": 74222,
       "source": "physics_synthetic",
-      "train_seconds": 1.77,
-      "trained_at": "2026-09-30T07:44:45+00:00",
+      "train_seconds": 1.62,
+      "trained_at": "2026-09-30T07:47:32+00:00",
+      "version": "1.0.0"
+    },
+    "M1": {
+      "data_hash": "bd269d5a6dca71f3",
+      "id": "M1",
+      "metrics": {
+        "cover80_T": 0.766598,
+        "cover80_battery": 0.811726,
+        "cover80_rh": 0.738381,
+        "mae_T_analytic": 3.829268,
+        "mae_T_ml": 0.197396,
+        "mae_battery_analytic": 0.025562,
+        "mae_battery_ml": 0.001292,
+        "mae_rh_analytic": 0.074543,
+        "mae_rh_ml": 0.004542,
+        "primary": {
+          "baseline": 3.829268,
+          "baseline_name": "analytic",
+          "direction": "lower",
+          "name": "mae_T_C",
+          "secondary": {
+            "baseline": 0.074543,
+            "name": "mae_rh_m",
+            "target": 0.8,
+            "value": 0.004542
+          },
+          "target": 6.0,
+          "value": 0.197396
+        }
+      },
+      "quick": false,
+      "size_bytes": 713529,
+      "source": "physics_synthetic",
+      "train_seconds": 16.91,
+      "trained_at": "2026-09-30T07:47:49+00:00",
+      "version": "1.0.0"
+    },
+    "M2": {
+      "data_hash": "8db93f257a652c82",
+      "id": "M2",
+      "metrics": {
+        "cycle_cover80_mean": 0.792069,
+        "cycle_cover80_std": 0.030062,
+        "cycle_mape_arps_pct": 26.621419,
+        "cycle_mape_ml_pct": 6.450035,
+        "cycle_mape_ml_same_subset_pct": 6.473569,
+        "cycle_mape_ml_with_well_scaling_pct": 6.624872,
+        "daily_cover80": 0.805709,
+        "daily_mape_ml_pct": 6.854627,
+        "n_cycles": 565,
+        "n_cycles_with_prev": 505,
+        "primary": {
+          "baseline": 26.621419,
+          "baseline_name": "arps_prev_cycle",
+          "direction": "lower",
+          "name": "cycle_cum_oil_mape_pct",
+          "target": 10.0,
+          "value": 6.450035
+        }
+      },
+      "quick": false,
+      "size_bytes": 823976,
+      "source": "physics_synthetic",
+      "train_seconds": 21.86,
+      "trained_at": "2026-09-30T07:48:11+00:00",
       "version": "1.0.0"
     }
   }
